@@ -442,8 +442,15 @@ When asked to implement a feature:
 7. Verify TypeScript and linting where available.
 8. Fix errors introduced by the changes.
 9. Summarize the changes and how to test them.
+10. Update `docs/implementation-plan.md` to mark the completed feature as done and add a short completion note.
 
 Do not rewrite unrelated screens, replace established libraries, alter existing behavior, or introduce speculative features.
+
+---
+
+## Implementation Plan Tracking
+
+The project roadmap is maintained in `docs/implementation-plan.md`. Whenever a feature listed in that plan is completed, update the plan immediately to mark it as done and record the completion date. Treat the plan as a living document: it should always reflect the real state of the codebase.
 
 ---
 
@@ -522,5 +529,6 @@ Before every feature implementation:
 - Test expiration and notification edge cases.
 - Avoid overengineering.
 - Preserve existing functionality.
+- When a feature is complete, mark it as done in `docs/implementation-plan.md`.
 
 **The goal is a reliable, polished WiFi subscription manager that makes it easy to track subscribers, know who needs to pay, and never overlook an approaching expiration.**
