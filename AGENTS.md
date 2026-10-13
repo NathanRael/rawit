@@ -10,32 +10,18 @@ Think like a senior mobile developer, but implement with simplicity in mind. The
 
 ## Project Overview
 
-We are building a **WiFi Subscription Manager** using React Native and Expo.
+The full project description, goals, features, and scope are maintained in [`docs/project-description.md`](./docs/project-description.md). Read it before implementing any feature.
 
-The app helps manage people who pay to use one or multiple WiFi networks. It provides a clear overview of subscribers, subscription periods, payment amounts, expiration dates, and upcoming payments.
+In short: **RAWIT** is a personal WiFi subscription manager built with React Native + Expo. It tracks subscribers, WiFi networks, subscription periods, payments, expirations, and local reminders — all offline-first.
 
-The application is intended for personal use. It will be installed and used through an Expo development or installable build without publishing it to the App Store or Google Play Store.
+---
 
-Core features include:
+## Skills & Design System
 
-- WiFi network management
-- Subscriber management
-- Subscription start and expiration dates
-- Configurable subscription durations and payment amounts
-- Subscription renewal and payment tracking
-- Dashboard showing active, expiring, and expired subscriptions
-- Local notifications for upcoming subscription expirations
-- In-app indicators and actions for subscriptions that need attention
-- Local data persistence without a backend
-- Data backup and restoration
+This repository includes skill definitions in `.skills/` that provide specialized guidance for specific tasks.
 
-The primary goal is to make it easy to answer three questions:
-
-1. Who is using each WiFi network?
-2. Who needs to pay, and when?
-3. Which subscriptions are about to expire or have already expired?
-
-The app does not need to automatically discover connected devices or control routers. Subscriber assignments, payments, and subscription changes are managed manually.
+- **Required:** Before implementing any UI, visual style, design token, or component, read and follow `.skills/brutalism-design/SKILL.md`. The Brutalism design system is the mandatory visual language for RAWIT.
+- Optional skills in `.skills/` may be used when they match the task at hand.
 
 ---
 
