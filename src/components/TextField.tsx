@@ -1,5 +1,6 @@
 import { BottomSheetTextInput, useBottomSheetInternal } from "@gorhom/bottom-sheet";
 import {
+  Platform,
   TextInput,
   View,
   type StyleProp,
@@ -26,10 +27,10 @@ export function TextField({
   onBlur,
   ...inputProps
 }: TextFieldProps) {
-  // Inside a bottom sheet the keyboard must move the sheet, which only BottomSheetTextInput does.
-  // Outside a sheet (full pages) that hook is null and a plain TextInput is used.
+  // Native bottom sheets need BottomSheetTextInput to track keyboard focus. Its focus handling
+  // relies on React Native internals that React Native Web does not provide, so web uses TextInput.
   const bottomSheet = useBottomSheetInternal(true);
-  const InputComponent = bottomSheet ? BottomSheetTextInput : TextInput;
+  const InputComponent = Platform.OS !== "web" && bottomSheet ? BottomSheetTextInput : TextInput;
 
   return (
     <View className="gap-2" style={containerStyle}>
