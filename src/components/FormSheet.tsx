@@ -3,7 +3,6 @@ import {
   type BottomSheetBackdropProps,
   BottomSheetModal,
   BottomSheetScrollView,
-  BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { useWindowDimensions, View } from "react-native";
@@ -83,30 +82,33 @@ export function FormSheet({
       onDismiss={handleDismiss}
       ref={sheetRef}
     >
-      {/* flex: 1 lets the scroll view fill the sheet height that dynamic sizing resolves to. */}
-      <BottomSheetView style={{ flex: 1, backgroundColor: colors.canvas, overflow: "hidden", ...cornerRadii }}>
-        <BottomSheetScrollView
-          nestedScrollEnabled
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={{ flex: 1 }}
+      {/*
+        The scroll view is the only scrollable and the direct child of the sheet. Dynamic sizing
+        measures its content, and once content exceeds maxDynamicContentSize the scroll view fills
+        the clamped height and scrolls. A wrapping BottomSheetView is absolutely positioned and
+        sizes to its full content, which disables scrolling.
+      */}
+      <BottomSheetScrollView
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+      >
+        {/* Everything lives inside the scroll view so dynamic sizing measures the whole sheet. */}
+        <View
+          className="gap-4 px-4 pt-3"
+          style={{ paddingBottom: Math.max(insets.bottom, spacing.md) }}
         >
-          {/* Everything lives inside the scroll view so dynamic sizing measures the whole sheet. */}
-          <View
-            className="gap-4 px-4 pt-3"
-            style={{ paddingBottom: Math.max(insets.bottom, spacing.md) }}
-          >
-            <View className="items-center py-1">
-              <View className="h-1.5 w-10 rounded-pill bg-neutral" />
-            </View>
-            <View className="gap-1">
-              <ThemedText variant="heading">{title}</ThemedText>
-              <ThemedText>{description}</ThemedText>
-            </View>
-            {children}
+          <View className="items-center py-1">
+            <View className="h-1.5 w-10 rounded-pill bg-neutral" />
           </View>
-        </BottomSheetScrollView>
-      </BottomSheetView>
+          <View className="gap-1">
+            <ThemedText variant="heading">{title}</ThemedText>
+            <ThemedText>{description}</ThemedText>
+          </View>
+          {children}
+        </View>
+      </BottomSheetScrollView>
     </BottomSheetModal>
   );
 }
