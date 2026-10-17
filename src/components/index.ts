@@ -1,4 +1,5 @@
 export { AlertBox } from "./AlertBox";
+export { AppPageHeader } from "./AppPageHeader";
 export { AppNavigationBar } from "./AppNavigationBar";
 export { Badge } from "./Badge";
 export { BottomNavbar, type NavbarItem } from "./BottomNavbar";

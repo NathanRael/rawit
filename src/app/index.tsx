@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   AlertBox,
+  AppPageHeader,
   Badge,
   Button,
   FilterChip,
@@ -48,23 +49,7 @@ export default function Index() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
-            <View
-              className="h-12 w-12 items-center justify-center rounded-control border-2 border-ink bg-brand"
-              style={roundedCorners}
-            >
-              <Icon name="wifi" size={24} />
-            </View>
-            <View>
-              <ThemedText variant="heading">RAWIT</ThemedText>
-              <ThemedText className="uppercase" variant="caption">
-                WiFi subscriptions
-              </ThemedText>
-            </View>
-          </View>
-          <Badge label="LIGHT UI KIT" tone="info" />
-        </View>
+        <AppPageHeader pageName="Home" />
 
         <View className="gap-3">
           <ThemedText variant="display">WiFi, made simple.</ThemedText>
