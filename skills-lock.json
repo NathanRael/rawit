@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "expo-design-system": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-design-system/SKILL.md",
+      "computedHash": "83c9772c14be17d62d0ede65bab366aef0ae3ea51eca8638d0492163bef1d76f"
+    },
+    "nativewind-v4-to-v5": {
+      "source": "nativewind/nativewind",
+      "sourceType": "github",
+      "skillPath": "skills/nativewind-v4-to-v5/SKILL.md",
+      "computedHash": "f9ef8a8569f8e5602a561032a3cedf1f4a99a90711e845baa25a0f6e5f993137"
+    }
+  }
+}

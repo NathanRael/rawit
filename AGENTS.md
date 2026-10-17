@@ -1,520 +1,94 @@
-# RAWIT — Project Guidelines
+# RAWIT Agent Guide
 
-You are an expert React Native + Expo engineer helping build a production-quality personal WiFi subscription management app.
+This file defines the repository-wide rules for agents and contributors. Keep it concise and actionable. Product behavior belongs in [`docs/project-description.md`](docs/project-description.md); delivery status belongs in [`docs/implementation-plan.md`](docs/implementation-plan.md).
 
-You write clean, simple, maintainable code. You prioritize clarity over unnecessary abstraction and build practical features that are easy to understand, test, and maintain.
+## Start here
 
-Think like a senior mobile developer, but implement with simplicity in mind. The goal is a reliable personal management tool, not an overengineered commercial SaaS application.
+Before changing code:
 
----
+1. Read this guide and the relevant parts of the project description.
+2. Inspect the current implementation, `package.json`, and nearby conventions. The app currently uses Expo Router files under `src/app/`; do not assume a root-level `app/` directory.
+3. Make the smallest complete change that satisfies the request. Avoid unrelated rewrites and speculative features.
+4. Update the implementation plan only when the requested work completes a feature already listed there. Record the completion date and a short note.
+5. Create or update a feature handoff plan in `.agents/plans/` for every feature or substantial task. Start the plan when work begins and keep it current as work progresses so another agent can resume it after an interruption or failure. Copy `.agents/plans/IMPLEMENTATION-PLAN.TEMPLATE.md` and name each plan with the next unused three-digit sequence and a short feature slug, for example `001-implement-specs.md`.
+6. Follow the template headings and record the goal and current status, what has been completed, what remains, any blockers or where work stopped, the next concrete step, and relevant files, decisions, and checks. Mark finished items clearly; do not leave the plan implying unfinished work is complete.
+7. Run relevant checks when appropriate. Check available scripts first; report only checks actually run and their results.
 
-## Project Overview
+Do not add a major dependency or change the agreed architecture without explaining the need and getting approval. Prefer installed packages and Expo capabilities.
 
-The full project description, goals, features, and scope are maintained in [`docs/project-description.md`](./docs/project-description.md). Read it before implementing any feature.
+## Commit workflow
 
-In short: **RAWIT** is a personal WiFi subscription manager built with React Native + Expo. It tracks subscribers, WiFi networks, subscription periods, payments, expirations, and local reminders — all offline-first.
+Commit only when the user explicitly asks. When asked to commit:
 
----
+1. Inspect `git status`, the working diff, and `git log --oneline -10`. Identify existing user changes and keep them out unless requested.
+2. Split work into small, cohesive commits by intent. Keep dependent changes together when splitting would leave an incomplete or broken state; otherwise, avoid bundling unrelated work or a separable 1000+ line change into one commit.
+3. Use Conventional Commit messages in `<type>(<scope>): <imperative summary>` form. Prefer `feat` for behavior, `fix` for corrections, `docs` for documentation, and use `refactor`, `test`, or `chore` where appropriate. Examples: `feat(subscriptions): add period records`, `fix(dates): clamp month-end expiration`.
+4. Stage only the files for the intended commit chunk, inspect the staged diff, and check for accidental secrets or unrelated edits.
+5. Run relevant checks before committing and report the exact checks and results. If a commit hook fails, fix the cause and create a new commit; do not skip hooks or amend unless explicitly requested.
 
-## Skills & Design System
+## Product and platform
 
-This repository includes skill definitions in `.skills/` that provide specialized guidance for specific tasks.
+RAWIT is a personal, offline-first WiFi subscription manager. It tracks WiFi networks, subscribers, subscription periods, payments, expiration dates, reminders, and backups. It is intended for an installed Expo build and does not require store publication.
 
-- **Required:** Before implementing any UI, visual style, design token, or component, read and follow `.skills/brutalism-design/SKILL.md`. The Brutalism design system is the mandatory visual language for RAWIT.
-- Optional skills in `.skills/` may be used when they match the task at hand.
+Do not add a backend, cloud sync, authentication, remote push service, router control, or connected-device discovery. Use local notifications only. Verify platform behavior against the installed Expo SDK and target build; Expo Go behavior is not proof of installed-build behavior.
 
----
+## Stack and repository conventions
 
-## Tech Stack
+- Expo SDK 57, React Native, TypeScript, and Expo Router.
+- NativeWind 5 RC with Tailwind CSS 4. Check the installed version and follow its matching syntax before styling or changing setup. Do not upgrade or reconfigure it without approval.
+- SQLite (`expo-sqlite`) is the durable source of truth for business records.
+- Zustand is for small shared UI state; do not mirror the database in it.
+- AsyncStorage is for small preferences only.
+- React Hook Form and Zod are available for forms and validation when useful.
+- Keep routes and screens in `src/app/`. Put reusable UI in `src/components/`, UI behavior in `src/hooks/`, infrastructure and shared utilities in `src/lib/`, shared state in `src/store/`, and shared types in `src/types/` where those directories fit the existing code.
 
-Use the following stack:
+Follow the structure already present before creating folders or moving files. Routes should coordinate UI and data; keep substantial business logic and database access out of presentation components.
 
-- **Expo** — Mobile application platform
-- **React Native** — Native mobile UI
-- **TypeScript** — Strict typing
-- **Expo Router** — File-based navigation
-- **NativeWind** — Tailwind CSS-style styling for React Native
-- **Zustand** — Client-side state management
-- **expo-sqlite** — Local persistence for subscriptions, subscribers, WiFi networks, and payment history
-- **expo-notifications** — Local subscription reminders
-- **AsyncStorage** — Small, non-relational preferences when appropriate
-- **React Hook Form + Zod** — Form handling and validation, if needed
+## Domain rules
 
-Do not introduce additional major libraries without a strong reason.
+### Subscriptions and payments
 
-Before installing a package, check whether an existing dependency or native Expo capability already solves the problem. If a new library would materially improve the implementation, explain why and ask for approval before adding it.
+- A subscription links one subscriber to one WiFi network for a date range and amount.
+- Keep lifecycle and payment state separate. Lifecycle is derived from dates and cancellation (`active`, `expiring soon`, `expired`, `cancelled`); payment is `paid`, `unpaid`, or `partially paid` only if partial payments are supported.
+- A subscription may be active and unpaid, or expired and paid. Do not combine these states.
+- Derive expiration consistently from start date and duration. Use local calendar dates for user-facing status and reminders; handle month ends, leap years, and “expires today” explicitly.
+- Recalculate date-based status when the app starts or returns to the foreground. Do not depend on continuous background execution.
+- Renewal must preserve prior subscription periods and payment history. Do not overwrite historical records to represent a renewal.
 
-### Important platform constraint
+### Persistence and data safety
 
-This application will run as an installed Expo build, not as a published store application.
+- Persist networks, subscribers, subscriptions, and payments in SQLite; the app must work offline and retain records across restarts.
+- Keep SQL in the data-access layer, use parameterized queries, handle initialization and query failures, and use transactions for related writes.
+- Preserve relationships and history. Confirm destructive actions, especially deleting records with linked history.
+- For backup/restore, export a portable file, validate imports before modifying data, confirm replacement, and use a transaction. Report failures accurately; never claim a backup succeeded unless it did.
 
-Prefer native capabilities supported by the existing Expo SDK and installed build. Do not assume that behavior available in Expo Go will be identical to behavior in a development or installable build.
+### Notifications
 
----
+- Use `expo-notifications` for local expiration reminders, normally three days before, one day before, and on the expiration date; honor configured preferences.
+- Reconcile reminders when a subscription is created, edited, renewed, cancelled, or deleted. Cancel obsolete reminders, avoid duplicates, skip invalid or past trigger times, and handle denied permissions without breaking core app use.
+- Persist notification identifiers when needed to cancel or reconcile schedules.
+- Notifications are reminders, not the source of truth. Screens must show expiring and expired subscriptions even if reminders are denied, dismissed, or missed.
 
-## Development Philosophy
+## UI and accessibility
 
-Build the application feature by feature.
+- When a design reference is supplied, match its meaningful layout, spacing, typography, colors, proportions, and visible controls closely. Do not redesign it without direction.
+- Without a reference, use a clear mobile-first interface that surfaces upcoming expirations, unpaid amounts, the associated network, and useful payment/renewal actions.
+- Prefer NativeWind classes where supported. Use `StyleSheet` or inline styles for platform-specific, calculated, or animated values that utilities cannot express cleanly.
+- Avoid nested cards, excess borders, and decorative UI that obscures the task. Provide readable dates and amounts, clear separate status indicators, helpful empty/error states, and touch targets of at least 44 dp where practical.
+- Give interactive controls accessible names and states. Confirm important destructive actions.
 
-For every feature:
+## TypeScript and maintainability
 
-1. Understand the user request and the expected behavior.
-2. Read these project guidelines before coding.
-3. Inspect the existing code and follow its conventions.
-4. Keep the implementation simple and focused.
-5. Prefer readable code over clever abstractions.
-6. Build the smallest complete and useful version first.
-7. Preserve existing functionality and avoid unrelated changes.
-8. Handle errors and important edge cases.
-9. Verify that the feature works end-to-end.
-10. Explain the changes and how to test them.
+- Keep strict types at boundaries and use explicit status unions. Avoid `any`, arbitrary status strings, and unnecessary assertions.
+- Handle nullable data deliberately. Prefer straightforward code over abstractions that do not remove meaningful duplication.
+- Do not add a server-state library or another major dependency without a demonstrated need and approval.
 
-Do not implement features that have not been requested merely because they might be useful in the future.
+## Validation and reporting
 
----
+Check `package.json` for the actual scripts. The current scripts include `pnpm lint` and `pnpm typecheck` (equivalently use the repository's configured package manager). Run relevant checks for code changes when appropriate, and fix issues introduced by the change.
 
-## Decision Making & Clarifications
+After implementing each feature, run a platform export/build check to catch bundling or build errors. For this app, use `pnpm exec expo export --platform all`; when a change affects native behavior that export cannot validate, also run an installed development/preview build when available. Resolve build failures before marking the feature complete, or record any unavailable validation in the handoff plan and final response.
 
-When something is unclear or could be improved:
+For date, persistence, payment, renewal, backup, or notification changes, consider the relevant cases from the product description and implementation plan. Test notification behavior on an installed build and supported devices when the change depends on native scheduling. Clearly state when device validation was not possible.
 
-- Proactively identify potential issues.
-- Recommend practical solutions appropriate for a personal mobile application.
-- Prefer existing dependencies and Expo APIs where possible.
-- Explain important technical trade-offs briefly.
-- Ask before introducing a new major dependency or changing the agreed architecture.
-
-Do not ask unnecessary questions when a reasonable implementation decision can be made from the existing requirements.
-
----
-
-## Architecture Guidelines
-
-Use this structure as a starting point, adapting it to the existing repository when necessary.
-
-```text
-app/
-  (tabs)/
-  wifi/
-  subscribers/
-  subscriptions/
-components/
-constants/
-hooks/
-lib/
-  database/
-  notifications/
-  dates/
-store/
-types/
-assets/
-```
-
-### app/
-
-Use this directory for routes and screens.
-
-Screens should coordinate components, hooks, and state. Avoid putting complex business logic or large reusable UI blocks directly inside route files.
-
-### components/
-
-Create reusable components when they represent a meaningful UI concept or improve readability.
-
-Examples:
-
-- `SubscriberCard`
-- `SubscriptionCard`
-- `WifiNetworkCard`
-- `ExpirationBadge`
-- `PaymentStatusBadge`
-- `EmptyState`
-- `ConfirmDialog`
-
-Avoid creating components for every small element. Extract components when there is meaningful reuse or when doing so makes a screen substantially easier to understand.
-
-### hooks/
-
-Use hooks for reusable behavior that belongs to the UI layer.
-
-Examples include subscription filters, form behavior, and screen-specific data coordination.
-
-Do not use hooks as a substitute for a clear business logic or data access layer.
-
-### lib/
-
-Keep infrastructure and shared utilities here.
-
-Examples:
-
-```text
-lib/
-  database/
-  notifications/
-  dates/
-  backup/
-```
-
-The database layer should handle local data access. The notification layer should handle permission checks, scheduling, cancellation, and notification reconciliation.
-
-Keep database operations and notification scheduling out of presentation components wherever practical.
-
-### store/
-
-Use Zustand for shared client state, such as:
-
-- Selected WiFi network or active filter
-- Dashboard data needed across screens
-- User preferences
-- Notification settings
-- Temporary application UI state
-
-Use SQLite as the persistent source of truth for core business records. Zustand is not a replacement for durable database storage.
-
-Avoid duplicating the entire database in a global store without a clear reason.
-
-### types/
-
-Keep shared TypeScript types and application-level status definitions here when doing so improves consistency.
-
-Use meaningful names and avoid unnecessary abstractions.
-
----
-
-## Subscription Management Rules
-
-The central concept of the application is a subscriber's subscription to a WiFi network.
-
-The application must support:
-
-- Adding and editing subscribers
-- Assigning subscribers to a WiFi network
-- Recording subscription start dates and durations
-- Defining the amount owed for a subscription
-- Calculating the expiration date
-- Renewing subscriptions
-- Tracking payment history
-- Viewing past and upcoming subscription periods
-
-### Subscription lifecycle and payment status
-
-Keep subscription lifecycle separate from payment status.
-
-Subscription lifecycle:
-
-- Active
-- Expiring soon
-- Expired
-- Cancelled
-
-Payment status:
-
-- Paid
-- Unpaid
-- Partially paid, if partial payments are supported
-
-An active subscription can be unpaid, and an expired subscription can already be paid. Do not combine these concepts into one status field or badge.
-
-Treat expiration as a date-based condition rather than relying on a manually maintained status that can become outdated.
-
-### Date handling
-
-- Use consistent date calculations throughout the app.
-- Keep the subscription duration and expiration date consistent.
-- Handle month-based durations carefully; adding one calendar month is not always equivalent to adding 30 days.
-- Avoid off-by-one errors when determining whether a subscription expires today.
-- Use the device's local date for user-facing expiration and reminder dates.
-- Recalculate expiration indicators when the app opens or returns to the foreground.
-
-Do not assume the app will run continuously in the background.
-
-### Renewal behavior
-
-Renewing a subscription should preserve the subscriber's historical payment and subscription records whenever appropriate.
-
-Do not silently overwrite historical payments or previous subscription periods when a subscription is renewed.
-
----
-
-## Local Notification Rules
-
-Use `expo-notifications` for local notifications. No backend, cloud scheduler, or remote push notification service is required for this version.
-
-The purpose of notifications is to remind the owner about upcoming subscription expirations and payments.
-
-### Notification behavior
-
-Support reminders for:
-
-- Three days before expiration
-- One day before expiration
-- The expiration date itself
-
-These intervals should be configurable where practical.
-
-Notification messages should contain useful information, such as:
-
-- Subscriber name
-- WiFi network name
-- Expiration date
-- Amount due, when applicable
-
-### Scheduling and cancellation
-
-Whenever a subscription is created, edited, renewed, cancelled, or deleted:
-
-- Update the relevant scheduled notifications.
-- Cancel obsolete reminders.
-- Prevent duplicate reminders.
-- Avoid scheduling reminders for invalid or past dates.
-- Handle notification permission denial gracefully.
-
-Store the identifiers of scheduled notifications whenever needed so that they can be managed later.
-
-Do not rely exclusively on background tasks to discover expirations. Schedule local notifications ahead of time and refresh the in-app expiration status whenever the app becomes active.
-
-### Notification and in-app UI responsibilities
-
-Notifications are reminders, not the source of truth.
-
-The dashboard and subscription screens must independently display subscriptions that are expiring soon or have expired, even if a notification was dismissed, permission was denied, or the app was not opened at the scheduled time.
-
-The user must be able to mark payments as paid and renew subscriptions directly from the app.
-
----
-
-## UI Implementation Rules (VERY IMPORTANT)
-
-The app should prioritize a clear, functional, mobile-first interface that makes subscription management quick and straightforward.
-
-When the user provides a design reference, reproduce it as closely as possible.
-
-You MUST match:
-
-- Layout and spacing
-- Typography and hierarchy
-- Colors and contrast
-- Borders, radii, and shadows
-- Alignment and component proportions
-- All meaningful visible UI elements
-
-Do not approximate a supplied reference or redesign it without permission.
-
-When no design reference exists, use consistent design decisions that suit a polished subscription management application.
-
-### UI priorities
-
-The interface should make the following immediately visible:
-
-- Subscriptions that need attention
-- Upcoming expiration dates
-- Unpaid amounts
-- The WiFi network associated with each subscriber
-- Quick actions for marking payments and renewing subscriptions
-
-Use meaningful status badges, readable dates, clear payment amounts, helpful empty states, and adequately sized touch targets.
-
-Do not overwhelm the interface with nested cards, unnecessary borders, excessive colors, or decorative elements.
-
-Confirm important destructive actions, such as deleting a subscriber or a WiFi network with associated records.
-
----
-
-## Styling Rules
-
-Use NativeWind utility classes for styling wherever supported.
-
-- Avoid `StyleSheet` when NativeWind can handle the styling cleanly.
-- Use `StyleSheet` or inline styles for React Native-specific properties, calculated styles, platform-specific behavior, and animation values that cannot be expressed appropriately through NativeWind.
-- Avoid large inline style objects when a simpler utility-class solution exists.
-- Keep repeated styling consistent across the application.
-- Prefer semantic, reusable styling patterns over duplicated long class strings.
-
-Before implementing NativeWind-related changes:
-
-1. Check the installed NativeWind version in `package.json`.
-2. Follow the setup and syntax supported by that version.
-3. Do not upgrade or reconfigure NativeWind without approval.
-4. Consult the relevant documentation if the installed version's behavior is uncertain.
-
-Documentation: https://www.nativewind.dev/v5/llms-full.txt
-
-Do not copy examples from a different NativeWind version without verifying compatibility.
-
----
-
-## State Management Rules
-
-Use Zustand for shared client-side state.
-
-Use local React state for temporary UI interactions, such as:
-
-- Open dialogs
-- Search input
-- Temporary form values
-- Expanded sections
-- Selected filters that do not need to be shared
-
-Use SQLite for persistent application records.
-
-Use AsyncStorage only for small preferences or settings where a relational database is unnecessary.
-
-Keep server state management libraries out of the project unless a real requirement emerges.
-
----
-
-## Database and Persistence Rules
-
-All core application data must be stored locally using `expo-sqlite`.
-
-The app must remain usable without an internet connection.
-
-Requirements:
-
-- Persist data across app restarts.
-- Use parameterized SQL queries.
-- Keep database access in the data-access layer.
-- Handle initialization and database errors.
-- Use transactions when multiple related changes must succeed or fail together.
-- Preserve payment and subscription history.
-- Avoid unnecessary database abstraction layers.
-- Plan for safe data backup and restoration.
-
-Do not introduce a backend, cloud database, authentication service, or synchronization layer for this version.
-
-Do not store important subscription or payment records only in React state or AsyncStorage.
-
----
-
-## TypeScript Rules
-
-Use TypeScript strictly.
-
-- Avoid `any`.
-- Define clear types for application data and function inputs.
-- Use explicit status values rather than arbitrary strings.
-- Handle nullable values intentionally.
-- Avoid unnecessary type assertions.
-- Keep types simple and understandable.
-
-Do not use TypeScript complexity to solve problems that can be addressed with simpler code.
-
----
-
-## Data Safety and Backup
-
-The application contains subscriber information and payment history, so accidental data loss should be considered.
-
-Where backup functionality is implemented:
-
-- Support exporting application data to a portable file.
-- Validate imported data before replacing existing records.
-- Prevent accidental overwriting without confirmation.
-- Report import and export failures clearly.
-- Preserve relationships between subscribers, WiFi networks, subscriptions, and payments.
-
-Do not claim that data is backed up unless the export or backup operation actually succeeds.
-
----
-
-## Feature Implementation Rules
-
-When asked to implement a feature:
-
-1. Read these guidelines.
-2. Inspect the relevant files and existing dependencies.
-3. Identify the smallest set of files that need changes.
-4. Explain important decisions when appropriate.
-5. Implement the complete feature using existing patterns.
-6. Handle loading, empty, success, and error states where relevant.
-7. Verify TypeScript and linting where available.
-8. Fix errors introduced by the changes.
-9. Summarize the changes and how to test them.
-10. Update `docs/implementation-plan.md` to mark the completed feature as done and add a short completion note.
-
-Do not rewrite unrelated screens, replace established libraries, alter existing behavior, or introduce speculative features.
-
----
-
-## Implementation Plan Tracking
-
-The project roadmap is maintained in `docs/implementation-plan.md`. Whenever a feature listed in that plan is completed, update the plan immediately to mark it as done and record the completion date. Treat the plan as a living document: it should always reflect the real state of the codebase.
-
----
-
-## Testing and Validation
-
-Test important subscription scenarios, including:
-
-- Creating and editing subscribers
-- Assigning subscribers to different WiFi networks
-- Calculating expiration dates
-- Distinguishing paid from unpaid subscriptions
-- Renewing an expired subscription
-- Preserving historical payments
-- Scheduling and cancelling local notifications
-- Handling denied notification permissions
-- Opening the app after several days without using it
-- Preserving data after an application restart
-- Exporting and restoring a backup
-
-Test notification behavior on the actual installed build and supported devices, not only in a simulator or Expo Go.
-
-Run the available project checks, such as:
-
-```bash
-npm run lint
-npm run typecheck
-```
-
-Check `package.json` first because the actual script names may differ. Do not claim these checks passed unless they were executed successfully.
-
----
-
-## Communication Style
-
-Be concise and practical.
-
-When explaining changes:
-
-- Summarize what changed.
-- Mention important technical decisions.
-- Identify any limitations or unverified behavior.
-- Explain how to test the feature.
-
-Avoid long explanations of basic React Native concepts unless requested.
-
----
-
-## Important Constraints
-
-- Personal-use application only.
-- No App Store or Google Play publication required.
-- Expo-based installed build.
-- Offline-first operation.
-- SQLite for core persistent data.
-- Local notifications only.
-- No backend or external notification service.
-- No automatic router integration or connected-device discovery in the current scope.
-- TypeScript throughout.
-- NativeWind for styling wherever supported.
-- No unapproved major dependencies.
-- Preserve subscription and payment history.
-- Keep the codebase simple, maintainable, and easy to extend.
-
----
-
-## Final Reminder
-
-Before every feature implementation:
-
-- Read these guidelines.
-- Inspect the existing project.
-- Follow the established architecture.
-- Build the smallest complete solution.
-- Keep subscription state, payment state, and notification state distinct.
-- Ensure that important information is persisted locally.
-- Test expiration and notification edge cases.
-- Avoid overengineering.
-- Preserve existing functionality.
-- When a feature is complete, mark it as done in `docs/implementation-plan.md`.
-
-**The goal is a reliable, polished WiFi subscription manager that makes it easy to track subscribers, know who needs to pay, and never overlook an approaching expiration.**
+In the final response, summarize the change, important decisions, checks actually run, and any material unverified behavior. Keep it practical and concise.
