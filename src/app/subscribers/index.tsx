@@ -16,6 +16,7 @@ import type { Subscriber } from "@/types";
 export default function SubscribersScreen() {
   const router = useRouter();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [hasSubscribers, setHasSubscribers] = useState(false);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isAddSheetVisible, setIsAddSheetVisible] = useState(false);
@@ -28,7 +29,10 @@ export default function SubscribersScreen() {
     setError(null);
     try {
       const results = await listSubscribers(search);
-      if (currentRequest === requestId.current) setSubscribers(results);
+      if (currentRequest === requestId.current) {
+        setSubscribers(results);
+        if (!search.trim()) setHasSubscribers(results.length > 0);
+      }
     } catch (cause) {
       if (currentRequest === requestId.current) {
         setError(cause instanceof Error ? cause.message : "Could not load subscribers.");
@@ -54,21 +58,25 @@ export default function SubscribersScreen() {
       subtitle="Keep subscriber details and network history together."
       title="Subscribers"
     >
-      <Button
-        onPress={() => setIsAddSheetVisible(true)}
-        title="Add a subscriber"
-        accessibilityHint="Create a subscriber record"
-      />
-      <TextField
-        accessibilityHint="Search subscriber names, phone numbers, or email addresses"
-        autoCapitalize="none"
-        autoCorrect={false}
-        label="Search subscribers"
-        onChangeText={setSearch}
-        placeholder="Name, phone, or email"
-        returnKeyType="search"
-        value={search}
-      />
+      {isLoading || error || hasSubscribers ? (
+        <Button
+          onPress={() => setIsAddSheetVisible(true)}
+          title="Add a subscriber"
+          accessibilityHint="Create a subscriber record"
+        />
+      ) : null}
+      {hasSubscribers ? (
+        <TextField
+          accessibilityHint="Search subscriber names, phone numbers, or email addresses"
+          autoCapitalize="none"
+          autoCorrect={false}
+          label="Search subscribers"
+          onChangeText={setSearch}
+          placeholder="Name, phone, or email"
+          returnKeyType="search"
+          value={search}
+        />
+      ) : null}
       {isLoading ? (
         <View className="items-center gap-3 py-8">
           <ActivityIndicator accessibilityLabel="Loading subscribers" />
