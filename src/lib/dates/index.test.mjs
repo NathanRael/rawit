@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   calculateExpirationDate,
+  getRemainingPaymentAmount,
   getPaymentStatus,
   getSubscriptionLifecycleStatus,
 } from "./index.ts";
@@ -46,4 +47,11 @@ test("payment state is independent and supports partial totals", () => {
   assert.equal(getPaymentStatus(50, 20), "partially_paid");
   assert.equal(getPaymentStatus(50, 50), "paid");
   assert.equal(getPaymentStatus(0, 0), "paid");
+});
+
+test("remaining payment amount never becomes negative", () => {
+  assert.equal(getRemainingPaymentAmount(50, 0), 50);
+  assert.equal(getRemainingPaymentAmount(50, 20), 30);
+  assert.equal(getRemainingPaymentAmount(50, 50), 0);
+  assert.equal(getRemainingPaymentAmount(50, 60), 0);
 });

@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { FilterChip } from "@/components/FilterChip";
 import { ThemedText } from "@/components/ThemedText";
 import { listSubscriptionPeriods } from "@/lib/database/repositories";
-import { formatCurrency, formatDateLocal } from "@/lib/dates";
+import { formatCurrency, formatDateLocal, getRemainingPaymentAmount } from "@/lib/dates";
 import { newSubscriptionHref, subscriptionDetailsHref } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
 import type { SubscriptionLifecycleStatus, SubscriptionPeriodDetails } from "@/types";
@@ -150,6 +150,10 @@ export default function SubscriptionPeriodsScreen() {
                   {formatDateLocal(period.startDate)} – {formatDateLocal(period.expirationDate)}
                 </ThemedText>
                 <ThemedText>Amount · {formatCurrency(period.amount)}</ThemedText>
+                <ThemedText>Paid · {formatCurrency(period.amountPaid)}</ThemedText>
+                <ThemedText>
+                  Remaining · {formatCurrency(getRemainingPaymentAmount(period.amount, period.amountPaid))}
+                </ThemedText>
                 <ThemedText>Lifecycle · {lifecycleLabel(period.lifecycleStatus)}</ThemedText>
                 <ThemedText>Payment · {paymentLabel(period.paymentStatus)}</ThemedText>
               </Card>

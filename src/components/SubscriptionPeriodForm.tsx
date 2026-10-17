@@ -16,7 +16,7 @@ import {
   listWifiNetworks,
   updateSubscriptionPeriod,
 } from "@/lib/database/repositories";
-import { getLocalDate } from "@/lib/dates";
+import { addDuration, getLocalDate } from "@/lib/dates";
 import {
   subscribersHref,
   subscriptionDetailsHref,
@@ -31,6 +31,7 @@ import type { DurationUnit, NewSubscriptionPeriod, Subscriber, WifiNetwork } fro
 
 type SubscriptionPeriodFormProps = {
   periodId?: string;
+  renewFromId?: string;
 };
 
 const durationOptions: { label: string; value: DurationUnit }[] = [
@@ -39,7 +40,7 @@ const durationOptions: { label: string; value: DurationUnit }[] = [
   { label: "Months", value: "month" },
 ];
 
-export function SubscriptionPeriodForm({ periodId }: SubscriptionPeriodFormProps) {
+export function SubscriptionPeriodForm({ periodId, renewFromId }: SubscriptionPeriodFormProps) {
   const router = useRouter();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [networks, setNetworks] = useState<WifiNetwork[]>([]);
@@ -69,16 +70,21 @@ export function SubscriptionPeriodForm({ periodId }: SubscriptionPeriodFormProps
       setIsLoading(true);
       setLoadError(null);
       try {
-        const [subscriberRecords, networkRecords, period] = await Promise.all([
+        const [subscriberRecords, networkRecords, period, renewalSource] = await Promise.all([
           listSubscribers(),
           listWifiNetworks(),
           periodId ? getSubscriptionPeriodById(periodId) : Promise.resolve(null),
+          renewFromId ? getSubscriptionPeriodById(renewFromId) : Promise.resolve(null),
         ]);
         if (!isCurrent()) return;
         setSubscribers(subscriberRecords);
         setNetworks(networkRecords);
         if (periodId && !period) {
           setLoadError("This subscription period could not be found. It may have been removed.");
+          return;
+        }
+        if (renewFromId && !renewalSource) {
+          setLoadError("The period to renew could not be found. It may have been removed.");
           return;
         }
         if (period) {
@@ -90,6 +96,18 @@ export function SubscriptionPeriodForm({ periodId }: SubscriptionPeriodFormProps
             durationUnit: period.durationUnit,
             amount: String(period.amount),
             notes: period.notes ?? "",
+          });
+        } else if (renewalSource) {
+          const earliestNextDate = addDuration(renewalSource.expirationDate, 1, "day");
+          const today = getLocalDate();
+          reset({
+            subscriberId: renewalSource.subscriberId,
+            wifiNetworkId: renewalSource.wifiNetworkId,
+            startDate: earliestNextDate < today ? today : earliestNextDate,
+            durationValue: String(renewalSource.durationValue),
+            durationUnit: renewalSource.durationUnit,
+            amount: String(renewalSource.amount),
+            notes: renewalSource.notes ?? "",
           });
         } else {
           reset({
@@ -112,7 +130,7 @@ export function SubscriptionPeriodForm({ periodId }: SubscriptionPeriodFormProps
         if (isCurrent()) setIsLoading(false);
       }
     },
-    [periodId, reset],
+    [periodId, renewFromId, reset],
   );
 
   useFocusEffect(

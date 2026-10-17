@@ -6,16 +6,23 @@ import { AppScreenFrame } from "@/components/AppScreenFrame";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { PaymentForm } from "@/components/PaymentForm";
 import { ThemedText } from "@/components/ThemedText";
 import {
   cancelSubscriptionPeriod,
+  deletePayment,
   deleteSubscriptionPeriod,
   getSubscriptionPeriodById,
+  listPaymentsForSubscription,
 } from "@/lib/database/repositories";
-import { formatCurrency, formatDateLocal } from "@/lib/dates";
-import { subscriptionEditHref, subscriptionsHref } from "@/lib/navigation";
+import { formatCurrency, formatDateLocal, getRemainingPaymentAmount } from "@/lib/dates";
+import {
+  renewSubscriptionHref,
+  subscriptionEditHref,
+  subscriptionsHref,
+} from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
-import type { SubscriptionLifecycleStatus, SubscriptionPeriodDetails } from "@/types";
+import type { Payment, SubscriptionLifecycleStatus, SubscriptionPeriodDetails } from "@/types";
 
 function lifecycleLabel(status: SubscriptionLifecycleStatus): string {
   if (status === "expiring_soon") return "Expiring soon";
@@ -46,8 +53,11 @@ export default function SubscriptionPeriodDetailsScreen() {
   const router = useRouter();
   const asOfDate = useLifecycleDate();
   const [period, setPeriod] = useState<SubscriptionPeriodDetails | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadPeriod = useCallback(async () => {
@@ -59,8 +69,12 @@ export default function SubscriptionPeriodDetailsScreen() {
     setIsLoading(true);
     setError(null);
     try {
-      const record = await getSubscriptionPeriodById(periodId, asOfDate);
+      const [record, history] = await Promise.all([
+        getSubscriptionPeriodById(periodId, asOfDate),
+        listPaymentsForSubscription(periodId),
+      ]);
       setPeriod(record);
+      setPayments(history);
       if (!record) setError("This subscription period could not be found. It may have been removed.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load this subscription period.");
@@ -126,6 +140,41 @@ export default function SubscriptionPeriodDetailsScreen() {
     }
   };
 
+  const confirmPaymentDelete = async (payment: Payment) => {
+    setIsWorking(true);
+    setError(null);
+    try {
+      const deleted = await deletePayment(payment.id);
+      if (!deleted) {
+        setError("This payment no longer exists.");
+      } else {
+        setShowPaymentForm(false);
+        setEditingPayment(null);
+      }
+      await loadPeriod();
+      if (!deleted) setError("This payment no longer exists.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not remove this payment.");
+    } finally {
+      setIsWorking(false);
+    }
+  };
+
+  const requestPaymentDelete = (payment: Payment) => {
+    Alert.alert(
+      "Remove payment?",
+      `Remove the ${formatCurrency(payment.amount)} payment dated ${formatDateLocal(payment.paidAt)}? This will update the period balance.`,
+      [
+        { text: "Keep payment", style: "cancel" },
+        {
+          text: "Remove payment",
+          style: "destructive",
+          onPress: () => void confirmPaymentDelete(payment),
+        },
+      ],
+    );
+  };
+
   const requestDelete = () => {
     if (!period) return;
     Alert.alert(
@@ -174,6 +223,9 @@ export default function SubscriptionPeriodDetailsScreen() {
               <ThemedText variant="label">Amount</ThemedText>
               <ThemedText>Due · {formatCurrency(period.amount)}</ThemedText>
               <ThemedText>Paid · {formatCurrency(period.amountPaid)}</ThemedText>
+              <ThemedText>
+                Remaining · {formatCurrency(getRemainingPaymentAmount(period.amount, period.amountPaid))}
+              </ThemedText>
             </View>
             <View className="gap-1">
               <ThemedText variant="label">Notes</ThemedText>
@@ -184,12 +236,81 @@ export default function SubscriptionPeriodDetailsScreen() {
             ) : null}
           </Card>
 
+          <View className="gap-3">
+            <ThemedText variant="heading">Payment history</ThemedText>
+            {payments.length === 0 ? (
+              <ThemedText>No payments recorded for this period.</ThemedText>
+            ) : (
+              payments.map((payment) => (
+                <Card className="gap-3" key={payment.id}>
+                  <View className="gap-1">
+                    <ThemedText variant="label">{formatCurrency(payment.amount)}</ThemedText>
+                    <ThemedText>Paid · {formatDateLocal(payment.paidAt)}</ThemedText>
+                    {payment.notes ? <ThemedText>Notes · {payment.notes}</ThemedText> : null}
+                  </View>
+                  <View className="gap-2">
+                    <Button
+                      disabled={isWorking}
+                      onPress={() => {
+                        setEditingPayment(payment);
+                        setShowPaymentForm(true);
+                      }}
+                      title="Edit payment"
+                      variant="secondary"
+                    />
+                    <Button
+                      disabled={isWorking}
+                      onPress={() => requestPaymentDelete(payment)}
+                      title="Remove payment"
+                      variant="danger"
+                    />
+                  </View>
+                </Card>
+              ))
+            )}
+            {showPaymentForm && period ? (
+              <Card>
+                <PaymentForm
+                  key={editingPayment?.id ?? "new-payment"}
+                  onCancel={() => {
+                    setShowPaymentForm(false);
+                    setEditingPayment(null);
+                  }}
+                  onSaved={async () => {
+                    setShowPaymentForm(false);
+                    setEditingPayment(null);
+                    await loadPeriod();
+                  }}
+                  payment={editingPayment ?? undefined}
+                  subscriptionId={period.id}
+                />
+              </Card>
+            ) : (
+              <Button
+                disabled={isWorking}
+                onPress={() => {
+                  setEditingPayment(null);
+                  setShowPaymentForm(true);
+                }}
+                title="Record a payment"
+                variant="secondary"
+              />
+            )}
+          </View>
+
           {error ? <ThemedText accessibilityRole="alert">{error}</ThemedText> : null}
           <Button
             disabled={isWorking}
             onPress={() => router.push(subscriptionEditHref(period.id))}
             title="Edit period"
             accessibilityHint="Change this subscription period’s subscriber, network, dates, amount, or notes"
+          />
+          <Button
+            disabled={isWorking}
+            onPress={() => router.push(renewSubscriptionHref(period.id))}
+            title="Renew period"
+            variant="secondary"
+            accessibilityHint="Create a separate new period prefilled from this one"
           />
           {period.lifecycleStatus !== "cancelled" ? (
             <Button

@@ -61,7 +61,7 @@ export interface Payment {
   id: string;
   subscriptionId: string;
   amount: number;
-  paidAt: string;
+  paidAt: LocalDate;
   notes: string | null;
   createdAt: string;
 }
@@ -92,6 +92,12 @@ export interface NewSubscriptionPeriod {
 export interface NewPayment {
   subscriptionId: string;
   amount: number;
-  paidAt: string;
+  paidAt: LocalDate;
+  notes?: string | null;
+}
+
+export interface UpdatePayment {
+  amount: number;
+  paidAt: LocalDate;
   notes?: string | null;
 }

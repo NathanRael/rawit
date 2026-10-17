@@ -7,6 +7,13 @@ export const subscribersHref = "/subscribers" as Href;
 export const subscriptionsHref = "/subscriptions" as Href;
 export const newSubscriptionHref = "/subscriptions/new" as Href;
 
+export function renewSubscriptionHref(id: string): Href {
+  return {
+    pathname: "/subscriptions/new",
+    params: { renewFrom: id },
+  } as Href;
+}
+
 export function wifiNetworkDetailsHref(id: string): Href {
   return `/wifi/${encodeURIComponent(id)}` as Href;
 }

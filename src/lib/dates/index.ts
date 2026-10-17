@@ -111,6 +111,10 @@ export function getPaymentStatus(amountDue: number, amountPaid: number): Payment
   return "partially_paid";
 }
 
+export function getRemainingPaymentAmount(amountDue: number, amountPaid: number): number {
+  return Math.max(0, amountDue - amountPaid);
+}
+
 export function formatDateLocal(value: LocalDate, locale?: string): string {
   const [year, month, day] = dateParts(value);
   const date = new Date(0);

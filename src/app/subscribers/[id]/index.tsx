@@ -11,7 +11,12 @@ import {
   getSubscriberById,
   listSubscriberSubscriptionPeriods,
 } from "@/lib/database/repositories";
-import { formatDateLocal, getLocalDate } from "@/lib/dates";
+import {
+  formatCurrency,
+  formatDateLocal,
+  getLocalDate,
+  getRemainingPaymentAmount,
+} from "@/lib/dates";
 import { subscriberEditHref, subscribersHref } from "@/lib/navigation";
 import type { Subscriber, SubscriberSubscriptionPeriod } from "@/types";
 
@@ -33,8 +38,10 @@ function SubscriptionRecord({ period }: { period: SubscriberSubscriptionPeriod }
       <ThemedText>Payment · {paymentLabel(period)}</ThemedText>
       <ThemedText>Started · {formatDateLocal(period.startDate)}</ThemedText>
       <ThemedText>Expires · {formatDateLocal(period.expirationDate)}</ThemedText>
+      <ThemedText>Due · {formatCurrency(period.amount)}</ThemedText>
+      <ThemedText>Paid · {formatCurrency(period.amountPaid)}</ThemedText>
       <ThemedText>
-        Paid · {period.amountPaid.toFixed(2)} of {period.amount.toFixed(2)}
+        Remaining · {formatCurrency(getRemainingPaymentAmount(period.amount, period.amountPaid))}
       </ThemedText>
       {period.notes ? <ThemedText>{period.notes}</ThemedText> : null}
     </Card>
