@@ -1,34 +1,45 @@
-# RAWIT — Project Description
+# RAWIT Product Description
 
-## Overview
+## Purpose
 
-We are building a **WiFi Subscription Manager** using React Native and Expo.
+RAWIT is a personal tool for managing people who pay to use one or more WiFi networks. Its main purpose is to make it easy to answer:
 
-The app helps manage people who pay to use one or multiple WiFi networks. It provides a clear overview of subscribers, subscription periods, payment amounts, expiration dates, and upcoming payments.
+1. Who uses each network?
+2. Who owes money, and how much?
+3. Which subscription is approaching expiration or has expired?
 
-The application is intended for personal use. It will be installed and used through an Expo development or installable build without publishing it to the App Store or Google Play Store.
+The app is built with Expo and React Native, runs as an installed build, and stores data locally so core use does not require internet access. Store publication is out of scope.
 
-## Core Features
+## Core records and workflows
 
-- WiFi network management
-- Subscriber management
-- Subscription start and expiration dates
-- Configurable subscription durations and payment amounts
-- Subscription renewal and payment tracking
-- Dashboard showing active, expiring, and expired subscriptions
-- Local notifications for upcoming subscription expirations
-- In-app indicators and actions for subscriptions that need attention
-- Local data persistence without a backend
-- Data backup and restoration
+- **WiFi networks:** create, view, edit, and safely remove named networks.
+- **Subscribers:** record subscriber details and assign them to network subscriptions.
+- **Subscription periods:** record the subscriber, network, start date, duration, amount, and notes. Calculate the expiration date consistently from the duration.
+- **Payments:** record payment history and show paid, unpaid, or partial payment status when partial payments are supported.
+- **Renewals:** create a new period while preserving previous subscription and payment records.
+- **Overview:** show active, expiring, and expired periods, unpaid amounts, and actions that need attention.
+- **Reminders:** schedule configurable local reminders before expiration and on the expiration date. In-app status remains correct even when notifications are unavailable.
+- **Backup and restore:** export portable data and safely validate and restore it.
 
-## Primary Goals
+## Rules that affect behavior
 
-The primary goal is to make it easy to answer three questions:
+### Lifecycle and payment are separate
 
-1. Who is using each WiFi network?
-2. Who needs to pay, and when?
-3. Which subscriptions are about to expire or have already expired?
+Subscription lifecycle is date-based (`active`, `expiring soon`, `expired`) or `cancelled`. Payment status is tracked separately. An active period can be unpaid, and an expired period can be paid.
 
-## Scope Notes
+### Dates use local calendar meaning
 
-The app does not need to automatically discover connected devices or control routers. Subscriber assignments, payments, and subscription changes are managed manually.
+Use the device's local date for user-facing dates and reminders. Handle month boundaries, leap years, and the expiration day consistently. Refresh derived status when the app opens or returns to the foreground; the app is not assumed to run continuously in the background.
+
+### Local data is the source of truth
+
+SQLite stores networks, subscribers, subscription periods, and payments. Zustand is for small shared UI state; AsyncStorage is for small preferences. Notifications only remind the owner and do not determine subscription status.
+
+## Out of scope
+
+- Backend services, cloud synchronization, accounts, or authentication.
+- Remote push notifications.
+- Automatic discovery of connected devices or router control.
+- App Store or Google Play publication requirements.
+
+See [AGENTS.md](../AGENTS.md) for engineering rules and [implementation-plan.md](implementation-plan.md) for planned and completed work.

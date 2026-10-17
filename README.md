@@ -1,56 +1,31 @@
-# Welcome to your Expo app 👋
+# RAWIT
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+RAWIT is an offline-first personal WiFi subscription manager built with Expo and React Native. It helps track subscribers, WiFi networks, subscription periods, payments, upcoming expirations, and local reminders.
 
-## Get started
+## Project documents
 
-1. Install dependencies
+- [Project description](docs/project-description.md): product goals, supported behavior, and scope.
+- [Implementation plan](docs/implementation-plan.md): current delivery checklist and completed milestones.
+- [Agent guide](AGENTS.md): repository rules for implementation and maintenance.
 
-   ```bash
-   npm install
-   ```
+## Development
 
-2. Start the app
+Use the package manager represented by `pnpm-lock.yaml`:
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+pnpm install
+pnpm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Available checks:
 
-### Other setup steps
+```sh
+pnpm lint
+pnpm typecheck
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Expo Router routes are currently in `src/app/`. Start the project with `pnpm start`, then use the Expo CLI options for the intended development build or platform. Native features such as notifications must be checked in an installed build; Expo Go may not match.
 
-## Learn more
+## Scope
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The app stores core records locally with SQLite and is designed to work without internet access. It does not connect to a backend, discover WiFi clients, or control routers. See the project description for product rules and the implementation plan for delivery status.

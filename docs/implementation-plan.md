@@ -1,350 +1,129 @@
-# RAWIT — Implementation Plan
-
-This document breaks the project into small, sequential, verifiable features. Each feature has a checklist of concrete tasks. Mark items `[x]` as they are completed, and update this file immediately when a feature is finished.
-
-> **Rule:** Whenever you complete a feature listed here, update this plan to mark it `done` before moving to the next one.
-
----
-
-## Phase 0 — Project Bootstrap & Tooling
-
-Make the repository ready for feature development and verify the agreed stack works.
-
-- [x] **0.1 Inspect current state**
-  - [ ] Confirm `package.json`, `app.json`, `tsconfig.json`, and `src/app/` layout.
-  - [ ] Confirm the app runs with `pnpm start` / `npx expo start` with no build errors.
-- [x] **0.2 Install and configure NativeWind v5**
-  - [ ] Add `nativewind@^5`, `tailwindcss`, and the required peer dependencies.
-  - [ ] Create `tailwind.config.js` with the content paths for `src/**/*.{ts,tsx}`.
-  - [ ] Create/update `babel.config.js` to use the NativeWind Babel plugin.
-  - [ ] Create/update `metro.config.js` for NativeWind CSS processing.
-  - [ ] Create `src/global.css` with the `@tailwind` directives.
-  - [ ] Import `global.css` in `src/app/_layout.tsx`.
-  - [ ] Replace the `StyleSheet` usage in `src/app/index.tsx` with a NativeWind className smoke test.
-  - [ ] Run the app and confirm NativeWind classes are applied.
-- [ ] **0.3 Install core state, persistence, and form libraries**
-  - [ ] Add `zustand`.
-  - [ ] Add `expo-sqlite`.
-  - [ ] Add `expo-notifications`.
-  - [ ] Add `@react-native-async-storage/async-storage`.
-  - [ ] Add `react-hook-form` and `zod` (with `@hookform/resolvers`).
-  - [ ] *(Optional, ask for approval)* Add `date-fns` for robust calendar-month expiration math.
-  - [ ] *(Optional, ask for approval)* Add `expo-file-system` and `expo-sharing` for backup export.
-- [ ] **0.4 Configure plugins**
-  - [ ] Add `expo-notifications` plugin configuration to `app.json`.
-  - [ ] Add `expo-sqlite` plugin if required by the installed version.
-- [x] **0.5 Project hygiene**
-  - [ ] Confirm `pnpm run lint` / `npm run lint` passes after setup.
-  - [ ] Confirm TypeScript compiles (`tsc --noEmit` or the project’s typecheck script).
-
-**Acceptance:** `expo start` launches, NativeWind styling works, no lint/type errors from new dependencies.
-
-> **Status:** NativeWind v5 RC0 is installed and configured. The remaining dependency installs in 0.3/0.4 will be done as each feature is implemented.
-
----
-
-## Phase 1 — Foundation (Types, Dates, DB, Store, Base UI)
-
-Build the shared layer every later feature depends on.
-
-- [ ] **1.1 Shared types**
-  - [ ] Create `types/index.ts`.
-  - [ ] Define `WifiNetwork` (`id`, `name`, `ssid?`, `notes?`, `createdAt`).
-  - [ ] Define `Subscriber` (`id`, `name`, `phone?`, `email?`, `notes?`, `createdAt`).
-  - [ ] Define `Subscription` (`id`, `subscriberId`, `wifiNetworkId`, `startDate`, `durationValue`, `durationUnit`, `endDate`, `amount`, `paymentStatus`, `status`, `notes?`, `createdAt`).
-  - [ ] Define `Payment` (`id`, `subscriptionId`, `amount`, `paidAt`, `notes?`).
-  - [ ] Define explicit enums/union types:
-    - `SubscriptionLifecycleStatus`: `active`, `expiring_soon`, `expired`, `cancelled`.
-    - `PaymentStatus`: `paid`, `unpaid`, `partially_paid`.
-    - `DurationUnit`: `day`, `week`, `month`.
-- [ ] **1.2 Date utilities**
-  - [ ] Create `lib/dates/index.ts`.
-  - [ ] Implement `startOfDayLocal(date)`.
-  - [ ] Implement `addDuration(startDate, value, unit)` handling month boundaries.
-  - [ ] Implement `calculateExpirationDate(startDate, durationValue, durationUnit)`.
-  - [ ] Implement `getSubscriptionLifecycleStatus(endDate, expiringSoonDays)`.
-  - [ ] Implement `formatDateLocal(date)` and `formatCurrency(amount)` helpers.
-  - [ ] Add unit-style tests for edge cases (end-of-month, leap years, today at midnight).
-- [ ] **1.3 SQLite database layer**
-  - [ ] Create `lib/database/index.ts` for connection/opening.
-  - [ ] Create `lib/database/migrations.ts` with schema version 1:
-    - `wifi_networks`
-    - `subscribers`
-    - `subscriptions`
-    - `payments`
-    - `subscription_notifications` (subscription_id, trigger_date, notification_id)
-  - [ ] Implement `migrateDatabase()` with `user_version` tracking.
-  - [ ] Create `lib/database/wifiNetworks.ts` with CRUD + list.
-  - [ ] Create `lib/database/subscribers.ts` with CRUD + list + search.
-  - [ ] Create `lib/database/subscriptions.ts` with CRUD, list, listByStatus, listExpiringSoon, listExpired, listUnpaid.
-  - [ ] Create `lib/database/payments.ts` with CRUD for payments and totals per subscription.
-  - [ ] Create `lib/database/notifications.ts` to store/clear scheduled notification IDs.
-  - [ ] Use parameterized queries everywhere; wrap multi-step writes in transactions.
-- [ ] **1.4 Database initialization hook**
-  - [ ] Create `hooks/useDatabase.ts` that opens SQLite and runs migrations once.
-  - [ ] Show a loading/startup screen while the DB is initializing.
-  - [ ] Surface migration errors clearly.
-- [ ] **1.5 Zustand store**
-  - [ ] Create `store/index.ts`.
-  - [ ] Store: selected WiFi network ID, dashboard filter, notification preferences, app foreground state.
-  - [ ] Keep store small; do not mirror the whole database.
-- [ ] **1.6 Base reusable components**
-  - [ ] Create `components/ThemedView.tsx`.
-  - [ ] Create `components/ThemedText.tsx`.
-  - [ ] Create `components/Card.tsx`.
-  - [ ] Create `components/Button.tsx`.
-  - [ ] Create `components/Badge.tsx`.
-  - [ ] Create `components/EmptyState.tsx`.
-  - [ ] Create `components/ConfirmDialog.tsx`.
-
-**Acceptance:** App launches, migrations run, sample CRUD operations can be tested manually, no type errors.
-
----
-
-## Phase 2 — WiFi Network Management
-
-Manage the networks subscribers connect to.
-
-- [ ] **2.1 WiFi network data layer**
-  - [ ] Add validation schema (`zod`) for create/edit forms.
-  - [ ] Add `createWifiNetwork`, `updateWifiNetwork`, `deleteWifiNetwork`, `getWifiNetworkById`, `listWifiNetworks`.
-- [ ] **2.2 WiFi list screen**
-  - [ ] Create `app/wifi/index.tsx`.
-  - [ ] Display networks with `WifiNetworkCard`.
-  - [ ] Add FAB / header button to add a network.
-  - [ ] Handle empty state.
-- [ ] **2.3 WiFi add/edit screens**
-  - [ ] Create `app/wifi/add.tsx` form with React Hook Form + Zod.
-  - [ ] Create `app/wifi/[id].tsx` for viewing/editing/deleting.
-- [ ] **2.4 Delete safety**
-  - [ ] Confirm destructive delete with `ConfirmDialog`.
-  - [ ] Block deletion or warn if the network has linked subscriptions.
-  - [ ] Cascade or reassign subscriptions depending on chosen behavior.
-
-**Acceptance:** Can add, edit, delete WiFi networks; deletion warns when subscriptions exist; list updates immediately.
-
----
-
-## Phase 3 — Subscriber Management
-
-Manage the people who pay for access.
-
-- [ ] **3.1 Subscriber data layer**
-  - [ ] Add Zod schema for subscriber forms.
-  - [ ] Add CRUD in `lib/database/subscribers.ts`.
-- [ ] **3.2 Subscriber list screen**
-  - [ ] Create `app/subscribers/index.tsx`.
-  - [ ] Display `SubscriberCard` with name, contact, and assigned network count.
-  - [ ] Add search input.
-  - [ ] Add empty state.
-- [ ] **3.3 Subscriber add/edit/detail screens**
-  - [ ] Create `app/subscribers/add.tsx` form.
-  - [ ] Create `app/subscribers/[id].tsx` detail/edit/delete screen.
-  - [ ] Show current/active subscription summary on the detail screen.
-- [ ] **3.4 Delete safety**
-  - [ ] Confirm delete with `ConfirmDialog`.
-  - [ ] Block or warn if subscriber has payment/subscription history.
-
-**Acceptance:** Can create, search, edit, delete subscribers; deleting protected subscribers requires confirmation.
-
----
-
-## Phase 4 — Subscription Management (Core)
-
-Create and edit subscriptions linking a subscriber, a network, dates, and amounts.
-
-- [ ] **4.1 Subscription data layer**
-  - [ ] Add Zod schema for subscription forms.
-  - [ ] Implement `createSubscription`, `updateSubscription`, `cancelSubscription`, `deleteSubscription`, `getSubscriptionById`, `listSubscriptions`.
-  - [ ] Derive `endDate` from start date + duration before writing to DB.
-  - [ ] Compute lifecycle status on read using `lib/dates` helpers.
-- [ ] **4.2 Subscription list screen**
-  - [ ] Create `app/subscriptions/index.tsx`.
-  - [ ] Display `SubscriptionCard` with subscriber name, network, dates, amount, badges.
-  - [ ] Add filters: All / Active / Expiring Soon / Expired / Unpaid.
-  - [ ] Add empty states per filter.
-- [ ] **4.3 Subscription add/edit/detail screens**
-  - [ ] Create `app/subscriptions/add.tsx` form: select subscriber, select network, start date, duration, amount, notes.
-  - [ ] Create `app/subscriptions/[id].tsx` for detail/edit/cancel/delete.
-  - [ ] Show lifecycle badge and payment status badge separately.
-- [ ] **4.4 Date edge cases**
-  - [ ] Recompute status when app foregrounds.
-  - [ ] Handle subscriptions that start in the future.
-  - [ ] Avoid off-by-one errors for “expires today”.
-
-**Acceptance:** Can create/edit subscriptions; expiration dates calculate correctly; filters show correct results after restart.
-
----
-
-## Phase 5 — Payments & Renewals
-
-Track who has paid and renew subscriptions without losing history.
-
-- [ ] **5.1 Payment recording**
-  - [ ] Add `recordPayment`, `updatePayment`, `deletePayment`, `getPaymentsForSubscription`, `getTotalPaidForSubscription`.
-  - [ ] Add “Mark as Paid” quick action on `SubscriptionCard` and detail screen.
-  - [ ] Support full payment; decide if partial payment is supported and implement accordingly.
-  - [ ] Update `paymentStatus` on the subscription after each payment change.
-- [ ] **5.2 Payment history UI**
-  - [ ] Show payment history inside `app/subscriptions/[id].tsx`.
-  - [ ] Add `PaymentListItem` component with date and amount.
-- [ ] **5.3 Renewal flow**
-  - [ ] Add `renewSubscription(subscriptionId)` that creates a **new** subscription period after the current one ends.
-  - [ ] Preserve the old subscription and its payment records.
-  - [ ] Pre-fill renewal form with previous duration/amount/network/subscriber.
-  - [ ] Provide a “Renew” quick action and a dedicated renewal confirmation.
-- [ ] **5.4 Unpaid tracking**
-  - [ ] Add `getTotalUnpaidAmount()` / list unpaid subscriptions.
-  - [ ] Display unpaid total in the dashboard.
-
-**Acceptance:** Payments persist across restarts; renewing creates a new period; old payments remain visible.
-
----
-
-## Phase 6 — Dashboard
-
-Give the owner an at-a-glance view of what needs attention.
-
-- [ ] **6.1 Tab layout**
-  - [ ] Convert `src/app` to `(tabs)` structure: Dashboard, Subscriptions, WiFi, Subscribers, Settings.
-  - [ ] Create `app/(tabs)/_layout.tsx` with bottom tab icons and labels.
-- [ ] **6.2 Dashboard screen**
-  - [ ] Create `app/(tabs)/index.tsx`.
-  - [ ] Show summary cards: Active subscriptions, Expiring soon, Expired, Total unpaid.
-  - [ ] Show a “Needs attention” list combining expiring/expired/unpaid items.
-  - [ ] Tapping an item navigates to the subscription detail.
-- [ ] **6.3 Foreground refresh**
-  - [ ] Add `useAppState` listener to recompute dashboard statuses when app returns to foreground.
-  - [ ] Ensure SQLite is re-querried, not relying on stale Zustand state.
-
-**Acceptance:** Dashboard numbers match the database; opening the app after several days shows correct statuses.
-
----
-
-## Phase 7 — Local Notifications
-
-Remind the owner before subscriptions expire.
-
-- [ ] **7.1 Notification infrastructure**
-  - [ ] Create `lib/notifications/index.ts`.
-  - [ ] Request permissions on first use.
-  - [ ] Handle denied permissions gracefully (show in-app guidance).
-- [ ] **7.2 Scheduling logic**
-  - [ ] Schedule reminders at configurable intervals: 3 days before, 1 day before, on expiration day.
-  - [ ] Notification body includes subscriber name, WiFi network, expiration date, amount due.
-  - [ ] Skip scheduling for past dates.
-  - [ ] Store scheduled notification IDs in `subscription_notifications`.
-- [ ] **7.3 Reconciliation**
-  - [ ] On subscription create/edit/renew/cancel/delete, cancel obsolete reminders and reschedule.
-  - [ ] Prevent duplicate reminders.
-- [ ] **7.4 Settings**
-  - [ ] Add notification on/off toggle.
-  - [ ] Add configurable reminder days (default 3 and 1).
-  - [ ] Persist preferences in AsyncStorage or SQLite settings table.
-
-**Acceptance:** Notifications schedule without errors; editing a subscription updates reminders; denied permission does not crash.
-
----
-
-## Phase 8 — Backup & Restore
-
-Protect subscriber and payment data from accidental loss.
-
-- [ ] **8.1 Export**
-  - [ ] Create `lib/backup/export.ts` that reads all SQLite tables and writes a timestamped JSON file.
-  - [ ] Use `expo-file-system` to write to the cache directory.
-  - [ ] Use `expo-sharing` (or OS share sheet) to let the user save the file.
-  - [ ] Report export success/failure clearly.
-- [ ] **8.2 Import**
-  - [ ] Create `lib/backup/import.ts` that reads a selected JSON file.
-  - [ ] Validate schema with Zod before touching the database.
-  - [ ] Show confirmation before overwriting existing data.
-  - [ ] Import within a transaction; roll back on error.
-  - [ ] Preserve relationships between networks, subscribers, subscriptions, and payments.
-- [ ] **8.3 Backup UI**
-  - [ ] Add Backup/Restore section in Settings.
-  - [ ] Add export button and import file picker.
-
-**Acceptance:** Exported file contains all data; import restores the app to the same state; invalid files are rejected safely.
-
----
-
-## Phase 9 — Settings, Theming & Polish
-
-Make the app feel complete and reliable.
-
-- [ ] **9.1 Settings screen**
-  - [ ] Create `app/(tabs)/settings.tsx`.
-  - [ ] Notification toggles and reminder-day inputs.
-  - [ ] Backup/Restore actions.
-  - [ ] Currency/locale format preference (optional).
-- [ ] **9.2 Dark/light mode**
-  - [ ] Support `useColorScheme()` with NativeWind dark variants.
-  - [ ] Ensure all screens adapt correctly.
-- [ ] **9.3 Error handling**
-  - [ ] Add an error boundary for the root layout.
-  - [ ] Surface DB errors in UI instead of silently failing.
-  - [ ] Add fallback UI when queries fail.
-- [ ] **9.4 Accessibility & touch targets**
-  - [ ] Add accessibility labels to all action buttons.
-  - [ ] Ensure touch targets are at least 44×44 dp.
-- [ ] **9.5 Performance**
-  - [ ] Avoid unnecessary re-renders in lists.
-  - [ ] Use `FlashList` only if lists become large; otherwise `FlatList` is fine.
-- [ ] **9.6 Final checks**
-  - [ ] Run `pnpm run lint` and fix issues.
-  - [ ] Run TypeScript check and fix issues.
-  - [ ] Manually verify every scenario in Phase 10.
-
-**Acceptance:** Settings persist, theme adapts, errors are handled gracefully, lint/type checks pass.
-
----
-
-## Phase 10 — Testing & Device Validation
-
-Validate real-world behavior, especially dates and notifications.
-
-- [ ] **10.1 Functional tests**
-  - [ ] Create a subscriber and WiFi network.
-  - [ ] Create a 1-month subscription starting today; verify expiration date.
-  - [ ] Mark payment as paid; verify payment status.
-  - [ ] Renew subscription; verify old record is preserved and a new active period exists.
-  - [ ] Delete a subscriber and confirm history is protected by confirmation.
-- [ ] **10.2 Date edge cases**
-  - [ ] Subscription starting Jan 31 for 1 month ends Feb 28/29.
-  - [ ] Subscription expiring today shows “Expired”.
-  - [ ] Subscription expiring in 2 days shows “Expiring soon”.
-  - [ ] Open app after changing device date; statuses refresh.
-- [ ] **10.3 Notification tests**
-  - [ ] Schedule reminders and confirm IDs are stored.
-  - [ ] Edit a subscription and confirm old reminders are cancelled.
-  - [ ] Deny notification permission and confirm app still works.
-  - [ ] Test on a real device or installed build (not only Expo Go).
-- [ ] **10.4 Persistence tests**
-  - [ ] Kill and reopen app; verify all data remains.
-  - [ ] Export backup, clear app data, import backup; verify restoration.
-- [ ] **10.5 Build**
-  - [ ] Create `eas.json` or local build config for an installable build.
-  - [ ] Run a preview/development build and install on a device.
-  - [ ] Smoke test on both Android and iOS if possible.
-
-**Acceptance:** All functional scenarios pass on a real installed build; backup round-trip works; notifications schedule correctly.
-
----
-
-## How to Use This Plan
-
-1. Work top to bottom. Do not skip a phase unless its outputs are genuinely already complete.
-2. Mark every sub-task `[x]` as it is finished.
-3. When a whole feature (e.g., **2. WiFi Network Management**) is complete, update the heading to include `✅` and write a short completion note with the commit/date.
-4. Before starting the next feature, re-read `AGENTS.md` and this plan.
-
----
-
-## Completion Log
-
-Use this section to record when major milestones are finished.
+# RAWIT — Feature Delivery Checklist
+
+This checklist defines the work and acceptance criteria for each feature. Product behavior is defined in [project-description.md](project-description.md); engineering constraints are in [AGENTS.md](../AGENTS.md). Follow the repository's existing structure and installed Expo APIs. Keep SQLite as the source of truth for business records, keep UI state small, and do not add out-of-scope services or features.
+
+## How to use this plan
+
+- Work through features in dependency order. A feature is complete only when its checklist and acceptance criteria are met.
+- Check off verified work only. When a feature is complete, record its date and a short note in the completion log.
+- Keep each change focused on the feature being delivered. Update this plan if implementation evidence requires a requirement or sequence to change.
+- Check available scripts before validation. Run relevant checks for code changes and report only checks actually run. Validate native notification behavior in an installed build.
+
+## 0. Project setup — complete
+
+- [x] Expo Router app runs from `src/app/` with the agreed Expo, React Native, and TypeScript stack.
+- [x] NativeWind v5 RC and Tailwind CSS v4 are configured and styling is verified.
+- [x] SQLite, local notifications, AsyncStorage, forms/validation, and file sharing dependencies are installed.
+- [x] Lint, TypeScript, and platform exports were checked as recorded below.
+
+**Acceptance:** The app starts and the configured styling/build setup works.
+
+## 1. Domain, dates, and local storage
+
+- [x] Define typed records for WiFi networks, subscribers, subscription periods, and payments; use day/week/month durations and keep lifecycle and payment status separate.
+- [x] Derive expiration from start date plus duration using local calendar dates; clamp month-end dates consistently (Jan 31 + 1 month = Feb 28/29).
+- [x] Handle leap years and future start dates. A period expiring today is expired; “expiring soon” means expiration is within the next three local calendar days.
+- [ ] Build SQLite initialization and versioned migrations for networks, subscribers, subscriptions, payments, and reminder identifiers/preferences as needed. (Implemented; installed-build initialization and restart persistence remain unverified because Android tooling/device access is unavailable here.)
+- [x] Add typed data access with parameterized SQL, relationship-preserving constraints, deliberate query/init errors, and transactions for related writes.
+- [x] Recalculate date-based lifecycle when the app opens and returns to foreground.
+
+**Acceptance:** Data survives app restarts; migrations initialize safely; dates and lifecycle follow the defined local-calendar rules.
+
+**Current validation:** Date/lifecycle tests, lint, TypeScript, and `pnpm exec expo export --platform all` pass. Native SQLite migration/startup and restart persistence still need an installed-build smoke test.
+
+## 2. WiFi networks — complete
+
+- [x] Create, list, view, and edit named networks, with optional SSID and notes.
+- [x] Validate required fields and show useful empty and error states.
+- [x] Require confirmation before deletion; block deleting a network while it has linked subscription history.
+
+**Acceptance:** Network changes persist and appear immediately; deleting a network cannot silently orphan or erase subscription history.
+
+**Validation:** SQLite-backed create/read/update/delete flows are implemented. The add action opens an Expo UI bottom sheet with 50%/90% snap points and pan-down dismissal; the empty list uses a reusable centered action card. Lint, TypeScript, and all-platform export pass. Native gesture and persistence behavior were not manually smoke-tested in an installed build.
+
+## 3. Subscribers
+
+- [ ] Create, list, search, view, and edit subscribers; capture name and optional contact details/notes.
+- [ ] Show a subscriber's current network/subscription summary and relevant history.
+- [ ] Require confirmation before deletion; block deleting a subscriber while they have linked subscription or payment history.
+
+**Acceptance:** Subscriber records persist, search works, and linked history cannot be silently removed.
+
+## 4. Subscription periods
+
+- [ ] Create a period linking exactly one subscriber and one network, with start date, duration, amount, and optional notes.
+- [ ] Derive its expiration date using the shared date rule; validate required links, positive duration, and non-negative amount.
+- [ ] List and view periods with subscriber, network, dates, amount, lifecycle, and payment status shown separately.
+- [ ] Support editing and cancellation. Confirm deletion and block it when payment history exists.
+- [ ] Provide useful filters for all, active, expiring soon, expired, and unpaid periods; include empty and error states.
+
+**Acceptance:** Period data persists and filters/statuses remain correct after restart and foreground refresh.
+
+## 5. Payments and renewals
+
+- [ ] Record, view, edit, and remove payment entries with amount, date, and optional notes.
+- [ ] Derive payment status from amount due and payment total: unpaid, partially paid, or paid. Do not change lifecycle when payment changes.
+- [ ] Show payment history and remaining amount; make payment totals consistent across details, lists, and overview.
+- [ ] Renew by creating a new period prefilled from the prior one. Never overwrite the old period or its payments.
+- [ ] Keep related payment and period writes transactional.
+
+**Acceptance:** Payments and balances persist accurately; renewal creates a separate period and keeps the full prior history.
+
+## 6. Overview
+
+- [ ] Make the primary screen answer: who owes money, how much, and which periods need attention.
+- [ ] Show counts or summaries for active, expiring soon, and expired periods, plus total unpaid amount.
+- [ ] Show actionable attention items with subscriber, network, expiration, amount/payment state, and navigation to the period.
+- [ ] Refresh from SQLite on app open/foreground; do not treat cached UI state as business data.
+
+**Acceptance:** Overview figures agree with stored records and date-derived statuses.
+
+## 7. Local expiration reminders
+
+- [ ] Add local reminder preferences, enabled by default, for 3 days before, 1 day before, and expiration day; allow reminders to be disabled and intervals to be changed.
+- [ ] Request notification permission when needed and handle denial without blocking core use.
+- [ ] Schedule only valid future reminders; include enough context to identify subscriber, network, and expiration.
+- [ ] Reconcile reminders after create, edit, renewal, cancellation, deletion, and preference changes; cancel obsolete reminders and avoid duplicates.
+- [ ] Store notification identifiers when needed for reliable cancellation. Keep in-app lifecycle status independent of notification delivery.
+
+**Acceptance:** Reminder schedules match current periods/preferences; denied, dismissed, or missed notifications do not hide expiring/expired periods. Verify scheduling on an installed build.
+
+## 8. Backup and restore
+
+- [ ] Export all business records and required relationships to a portable, versioned file; report success only after the file is written and offered to the user.
+- [ ] Let the user select a backup and validate its version, shape, and relationships before changing stored data.
+- [ ] Explain that restore replaces current data and require confirmation.
+- [ ] Restore all related records in one transaction; roll back and report failure if any step fails.
+- [ ] Provide clear progress, success, invalid-file, and failure states.
+
+**Acceptance:** A valid export can restore equivalent data; invalid or failed imports leave existing data intact.
+
+## 9. Settings, accessibility, and release readiness
+
+- [ ] Provide settings for reminder preferences and backup/restore; persist small preferences in AsyncStorage and business data in SQLite.
+- [ ] Ensure controls have accessible names/states, readable status and amount labels, and practical 44 dp touch targets.
+- [ ] Handle startup and query failures visibly; provide usable loading, empty, and error states.
+- [ ] Apply a consistent theme and support light/dark appearance where the app's design supports it.
+- [ ] Run the repository's lint and type checks; resolve issues introduced by the work.
+- [ ] Install a development/preview build and check core flows on supported target devices when available.
+
+**Acceptance:** Core workflows are understandable and accessible; checks pass; installed-build behavior is recorded, including anything not device-verified.
+
+## End-to-end acceptance checklist
+
+- [ ] Create a network and subscriber, then create a linked subscription period.
+- [ ] Verify a Jan 31 monthly start, leap-year handling, future starts, expiration today, and the expiring-soon boundary.
+- [ ] Record partial and full payments; verify balances and that lifecycle remains independent.
+- [ ] Renew and verify the old period and payment history remain intact.
+- [ ] Confirm destructive actions protect linked history.
+- [ ] Close and reopen the app; verify records and derived statuses.
+- [ ] Verify reminder rescheduling and denied-permission behavior on an installed build.
+- [ ] Export, replace local data with a restore, and verify relationships; reject an invalid backup without changing data.
+
+## Completion log
 
 | Date | Feature | Notes |
-|------|---------|-------|
-| 2026-10-13 | Phase 0 — NativeWind bootstrap | Installed nativewind@5.0.0-rc.0 + react-native-css@3.1.0-rc.0, Tailwind v4, PostCSS, Metro config, global.css, smoke test. TypeScript and lint pass; web export succeeds. |
+|---|---|---|
+| 2026-10-13 | Project setup | Installed/configured NativeWind v5 RC, Tailwind v4, SQLite, notifications, AsyncStorage, forms/validation, file sharing, and related Expo plugins. Lint, TypeScript, and web export passed; `date-fns` was deferred. |
+| 2026-10-17 | Project setup | Aligned Metro with the NativeWind `withNativewind` export, moved styling build tools to dev dependencies, and enabled Tailwind IntelliSense. Lint, typecheck, and web/iOS/Android exports passed. |
+| 2026-10-17 | WiFi networks | Added network CRUD screens, a draggable Expo UI bottom-sheet add flow, reusable centered empty state, required-name validation, and deletion protection for linked history. Lint, typecheck, and all-platform export passed; native interaction and persistence smoke tests remain unverified. |
