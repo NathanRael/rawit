@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   AlertBox,
   Badge,
-  BottomNavbar,
   Button,
   FilterChip,
   Icon,
@@ -13,29 +12,18 @@ import {
   PlanCard,
   TextField,
   ThemedText,
-  type NavbarItem,
 } from "@/components";
 import { hardShadow, roundedCorners, spacing } from "@/theme";
 
 const filterOptions = ["Annual", "Monthly", "5G", "Fiber"];
-
-const navigationItems: NavbarItem[] = [
-  { key: "home", label: "Home", icon: "home" },
-  { key: "plans", label: "Plans", icon: "plans" },
-  { key: "wifi", label: "WiFi", icon: "wifi" },
-  { key: "people", label: "People", icon: "people" },
-  { key: "more", label: "More", icon: "more" },
-];
 
 function SectionTitle({ children }: { children: string }) {
   return <ThemedText variant="heading">{children}</ThemedText>;
 }
 
 export default function Index() {
-  const insets = useSafeAreaInsets();
   const [selectedFilter, setSelectedFilter] = useState("Annual");
   const [selectedPlan, setSelectedPlan] = useState("Basic");
-  const [activeTab, setActiveTab] = useState("home");
   const [interactionMessage, setInteractionMessage] = useState("");
 
   const showPreviewFeedback = (label: string) => {
@@ -223,17 +211,6 @@ export default function Index() {
         </View>
       </ScrollView>
 
-      <View
-        className="bg-canvas px-4 pt-2"
-        style={{ paddingBottom: Math.max(insets.bottom, spacing.md) }}
-      >
-        <BottomNavbar
-          activeKey={activeTab}
-          items={navigationItems}
-          onChange={setActiveTab}
-          style={{ alignSelf: "stretch" }}
-        />
-      </View>
     </SafeAreaView>
   );
 }
