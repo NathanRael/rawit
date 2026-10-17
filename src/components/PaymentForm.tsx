@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { View } from "react-native";
 
 import { Button } from "@/components/Button";
+import { DateField } from "@/components/DateField";
 import { TextField } from "@/components/TextField";
 import { ThemedText } from "@/components/ThemedText";
 import { createPayment, updatePayment } from "@/lib/database/repositories";
@@ -62,7 +63,6 @@ export function PaymentForm({ subscriptionId, payment, onSaved, onCancel }: Paym
 
   return (
     <View className="gap-4">
-      <ThemedText variant="label">{payment ? "Edit payment" : "Record a payment"}</ThemedText>
       <Controller
         control={control}
         name="amount"
@@ -82,15 +82,11 @@ export function PaymentForm({ subscriptionId, payment, onSaved, onCancel }: Paym
         control={control}
         name="paidAt"
         render={({ field }) => (
-          <TextField
-            autoCapitalize="none"
-            autoCorrect={false}
+          <DateField
             error={errors.paidAt?.message}
-            keyboardType="numbers-and-punctuation"
             label="Payment date *"
             onBlur={field.onBlur}
-            onChangeText={field.onChange}
-            placeholder="YYYY-MM-DD"
+            onChange={field.onChange}
             value={field.value}
           />
         )}

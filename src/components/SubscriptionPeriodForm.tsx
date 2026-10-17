@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DateField } from "@/components/DateField";
 import { FilterChip } from "@/components/FilterChip";
 import { TextField } from "@/components/TextField";
 import { ThemedText } from "@/components/ThemedText";
@@ -280,15 +281,11 @@ export function SubscriptionPeriodForm({ periodId, renewFromId }: SubscriptionPe
         control={control}
         name="startDate"
         render={({ field }) => (
-          <TextField
-            autoCapitalize="none"
-            autoCorrect={false}
+          <DateField
             error={errors.startDate?.message}
             label="Start date *"
             onBlur={field.onBlur}
-            onChangeText={field.onChange}
-            placeholder="YYYY-MM-DD"
-            keyboardType="numbers-and-punctuation"
+            onChange={field.onChange}
             value={field.value}
           />
         )}

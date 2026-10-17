@@ -8,6 +8,8 @@ export const iconNames = {
   plans: { ios: "rectangle.stack.fill", android: "receipt_long", web: "receipt_long" },
   people: { ios: "person.2.fill", android: "group", web: "group" },
   more: { ios: "ellipsis", android: "more_horiz", web: "more_horiz" },
+  overflow: { ios: "ellipsis.circle", android: "more_vert", web: "more_vert" },
+  back: { ios: "chevron.left", android: "arrow_back", web: "arrow_back" },
   search: { ios: "magnifyingglass", android: "search", web: "search" },
   plus: { ios: "plus", android: "add", web: "add" },
   check: { ios: "checkmark", android: "check", web: "check" },
