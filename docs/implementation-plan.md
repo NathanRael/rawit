@@ -43,11 +43,13 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 
 ## 3. Subscribers
 
-- [ ] Create, list, search, view, and edit subscribers; capture name and optional contact details/notes.
-- [ ] Show a subscriber's current network/subscription summary and relevant history.
-- [ ] Require confirmation before deletion; block deleting a subscriber while they have linked subscription or payment history.
+- [x] Create, list, search, view, and edit subscribers; capture name and optional contact details/notes.
+- [x] Show a subscriber's current network/subscription summary and relevant history.
+- [x] Require confirmation before deletion; block deleting a subscriber while they have linked subscription or payment history.
 
 **Acceptance:** Subscriber records persist, search works, and linked history cannot be silently removed.
+
+**Validation:** SQLite-backed subscriber CRUD, search, subscription history, and transaction-guarded deletion are implemented. Create uses a draggable Expo UI bottom sheet; the shared bottom navigation stays mounted across routes. Lint, TypeScript, SQLite query smoke test, and all-platform export pass. Installed-build interaction and persistence were not manually tested.
 
 ## 4. Subscription periods
 
@@ -109,6 +111,17 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 
 **Acceptance:** Core workflows are understandable and accessible; checks pass; installed-build behavior is recorded, including anything not device-verified.
 
+## 10. Local database backup for reinstall recovery
+
+- [ ] Let the user export a portable backup of all SQLite business records, relationships, and required format/version metadata.
+- [ ] Save or share the backup to a user-selected location outside RAWIT's private app storage, such as the device's documents or downloads, so it remains available if the app is uninstalled.
+- [ ] Let the user select a previously saved backup file to import after reinstalling the app.
+- [ ] Validate the backup and explain that importing replaces current local records; require confirmation before restore.
+- [ ] Restore all records and relationships transactionally, and leave existing data intact if validation or restore fails.
+- [ ] Show clear export, import, success, invalid-file, and failure states; never report success until the file operation completes.
+
+**Acceptance:** A user can save a backup outside the app sandbox, uninstall and reinstall RAWIT, then import the backup and recover equivalent records and relationships. An invalid backup or failed restore does not damage current data.
+
 ## End-to-end acceptance checklist
 
 - [ ] Create a network and subscriber, then create a linked subscription period.
@@ -127,3 +140,4 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 | 2026-10-13 | Project setup | Installed/configured NativeWind v5 RC, Tailwind v4, SQLite, notifications, AsyncStorage, forms/validation, file sharing, and related Expo plugins. Lint, TypeScript, and web export passed; `date-fns` was deferred. |
 | 2026-10-17 | Project setup | Aligned Metro with the NativeWind `withNativewind` export, moved styling build tools to dev dependencies, and enabled Tailwind IntelliSense. Lint, typecheck, and web/iOS/Android exports passed. |
 | 2026-10-17 | WiFi networks | Added network CRUD screens, a draggable Expo UI bottom-sheet add flow, reusable centered empty state, required-name validation, and deletion protection for linked history. Lint, typecheck, and all-platform export passed; native interaction and persistence smoke tests remain unverified. |
+| 2026-10-17 | Subscribers | Added subscriber CRUD, search, current subscription summary, full network/payment-status history, and deletion protection for linked periods. Added subscriber bottom-sheet creation and one persistent bottom navigation across routes. Lint, typecheck, SQLite query smoke test, and all-platform export passed; installed-build behavior remains unverified. |
