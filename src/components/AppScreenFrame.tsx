@@ -9,20 +9,18 @@ import { spacing } from "@/theme";
 
 type AppScreenFrameProps = {
   title: string;
-  pageName?: string;
   subtitle?: string;
   refreshing?: boolean;
   onRefresh?: () => void;
   /** When set, shows a back header instead of the brand header (subpages only). */
   onBack?: () => void;
-  /** Optional trailing control in the back header, such as an overflow menu. */
+  /** Trailing control in the header, such as Settings (top-level) or an overflow menu (subpages). */
   headerAction?: ReactNode;
   children: ReactNode;
 };
 
 export function AppScreenFrame({
   title,
-  pageName = title,
   subtitle,
   refreshing = false,
   onRefresh,
@@ -55,16 +53,16 @@ export function AppScreenFrame({
         {onBack ? (
           <View className="flex-row items-center gap-3">
             <IconButton icon="back" label="Go back" onPress={onBack} />
-            <ThemedText className="flex-1" variant="heading">
+            <ThemedText className="min-w-0 flex-1" numberOfLines={2} variant="title">
               {title}
             </ThemedText>
             {headerAction}
           </View>
         ) : (
           <>
-            <AppPageHeader pageName={pageName} />
+            <AppPageHeader action={headerAction} />
             <View className="gap-2">
-              <ThemedText variant="heading">{title}</ThemedText>
+              <ThemedText variant="title">{title}</ThemedText>
               {subtitle ? <ThemedText variant="body">{subtitle}</ThemedText> : null}
             </View>
           </>

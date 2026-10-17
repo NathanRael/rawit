@@ -10,6 +10,7 @@ export const iconNames = {
   more: { ios: "ellipsis", android: "more_horiz", web: "more_horiz" },
   overflow: { ios: "ellipsis.circle", android: "more_vert", web: "more_vert" },
   back: { ios: "chevron.left", android: "arrow_back", web: "arrow_back" },
+  chevron: { ios: "chevron.right", android: "chevron_right", web: "chevron_right" },
   search: { ios: "magnifyingglass", android: "search", web: "search" },
   plus: { ios: "plus", android: "add", web: "add" },
   check: { ios: "checkmark", android: "check", web: "check" },
