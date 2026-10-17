@@ -101,3 +101,8 @@ export interface UpdatePayment {
   paidAt: LocalDate;
   notes?: string | null;
 }
+
+export interface ReminderPreferences {
+  enabled: boolean;
+  intervalsDays: number[];
+}
