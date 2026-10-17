@@ -32,6 +32,8 @@ RAWIT is a personal WiFi subscription manager backed by Supabase accounts and cr
 
 Supabase Auth and a per-user cloud snapshot provide the requested login and cross-device sync. Do not add another backend, remote push service, router control, or connected-device discovery. Use local notifications only. Verify platform behavior against the installed Expo SDK and target build; Expo Go behavior is not proof of installed-build behavior.
 
+Email confirmation is required for new accounts. Keep Supabase Confirm Email enabled, provide the in-app code and resend flow, and do not import account records before a confirmed session exists.
+
 ## Stack and repository conventions
 
 - Expo SDK 57, React Native, TypeScript, and Expo Router.

@@ -6,9 +6,12 @@ RAWIT uses Supabase Auth for email/password accounts and one revisioned cloud sn
 
 1. Create a Supabase project.
 2. In its SQL editor, run [`supabase/migrations/20261017_user_snapshots.sql`](../supabase/migrations/20261017_user_snapshots.sql). This creates the per-user snapshot table, row-level security policies, and an atomic save function.
-3. In **Authentication → Providers → Email**, enable email/password signups and turn **Confirm Email** off. Without this setting, registration will return no session and RAWIT will show a configuration error. Disabling confirmation allows anyone who controls no mailbox to register an email address; use this setting only if that tradeoff is acceptable for the deployment.
-4. Copy `.env.example` to `.env.local` and add the project's URL and **publishable** key. Never use a service-role or secret key in an Expo app. `.env.local` is ignored by Git.
-5. Restart Expo after changing environment variables. Set the same public values in the web and installed-build deployment environments.
+3. In **Authentication → Providers → Email**, enable email/password signups and keep **Confirm Email** on.
+4. In **Authentication → Email Templates → Confirm sign up**, include `{{ .Token }}` in the message so the recipient can enter the code in RAWIT. You may keep `{{ .ConfirmationURL }}` as an additional email link, but the in-app code flow requires the token. Supabase's default link-only template does not show a code. Send a test confirmation email after saving the template. For production delivery to addresses outside your Supabase organization, configure a custom SMTP provider.
+5. Copy `.env.example` to `.env.local` and add the project's URL and **publishable** key. Never use a service-role or secret key in an Expo app. `.env.local` is ignored by Git.
+6. Restart Expo after changing environment variables. Set the same public values in the web and installed-build deployment environments.
+
+After registration, RAWIT asks for the email code and offers **Resend code**. If the app closes before confirmation, sign in with the same email and password; Supabase's unconfirmed-email response returns you to the code screen. If sending or verifying fails, retry or resend and use the latest code received. Supabase owns the pending Auth user, so the public app cannot safely delete it as a rollback. RAWIT does not open an account database, import legacy records, or upload a snapshot until Supabase issues a confirmed session.
 
 The app checks account ownership using the authenticated user's immutable Supabase ID. Email addresses can change; passwords are never used as record keys. Supabase row-level security limits reads and writes to the signed-in user's snapshot.
 

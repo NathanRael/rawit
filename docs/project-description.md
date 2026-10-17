@@ -12,7 +12,7 @@ The app is built with Expo and React Native for installed mobile builds and a ph
 
 ## Core records and workflows
 
-- **Accounts:** register and log in with email and password, access only that account's records, and log out. Email confirmation is disabled for this personal app.
+- **Accounts:** register with email and password, confirm the email with a code, log in, access only that account's records, and log out. Account records are opened and earlier local records are imported only after a confirmed session exists.
 - **WiFi networks:** create, view, edit, and safely remove named networks.
 - **Subscribers:** record subscriber details and assign them to network subscriptions.
 - **Subscription periods:** record the subscriber, network, start date, duration, amount, and notes. Calculate the expiration date consistently from the duration.

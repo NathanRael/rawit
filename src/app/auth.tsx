@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
+import { isAuthApiError } from "@supabase/supabase-js";
 
 import { AuthPageLayout } from "@/components/AuthPageLayout";
 import { Button } from "@/components/Button";
@@ -38,7 +39,14 @@ export default function LoginScreen() {
         email: normalizedEmail,
         password,
       });
-      if (authError) throw authError;
+      if (authError) {
+        if (isAuthApiError(authError) && authError.code === "email_not_confirmed") {
+          setPassword("");
+          router.replace({ pathname: "/confirm-email", params: { email: normalizedEmail } });
+          return;
+        }
+        throw authError;
+      }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not log in.");
     } finally {

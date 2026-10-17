@@ -4,7 +4,7 @@ RAWIT is a personal WiFi subscription manager for installed mobile builds and **
 
 ## How it works
 
-- Register or log in with an email address and password. Email confirmation is disabled in the intended Supabase configuration.
+- Register with an email address and password, then enter the confirmation code sent by Supabase before opening the account. The app can resend the code; an unconfirmed login returns to confirmation.
 - Each account has its own SQLite copy on the device or browser. Changes are saved locally first, then uploaded to that user's Supabase snapshot. The app also checks for newer cloud records when it returns to the foreground or when you choose **Sync now**.
 - An internet connection is required for registration, sign-in, and cross-device synchronization. Previously loaded account records can remain available during a temporary disconnection; unsynced changes stay on that device until a later sync. This is a connected app with a local copy, not a backend-free offline app.
 - Expiration reminders are local notifications on installed iOS and Android builds. Mobile web shows expiration status in the app but does not schedule browser notifications.
@@ -12,7 +12,7 @@ RAWIT is a personal WiFi subscription manager for installed mobile builds and **
 ## Set up the account service
 
 1. Create a Supabase project and run [the RAWIT SQL migration](supabase/migrations/20261017_user_snapshots.sql) in its SQL editor. It creates the per-user snapshot table, row-level security policies, and revision-checked save function.
-2. In **Authentication → Providers → Email**, enable email/password signups and turn **Confirm Email** off.
+2. In **Authentication → Providers → Email**, enable email/password signups and keep **Confirm Email** on. In **Authentication → Email Templates → Confirm sign up**, include `{{ .Token }}` so RAWIT can verify the code in the app.
 3. Copy `.env.example` to `.env.local` and enter the project's URL and **publishable** key. Do not put a service-role or secret key in an Expo app.
 
 See [Supabase setup](docs/supabase-setup.md) for import, sync, and deployment details. The cloud migration and Auth setting must be applied before testing account flows end to end.

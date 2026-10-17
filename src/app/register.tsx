@@ -39,6 +39,7 @@ export default function RegisterScreen() {
     }
 
     setIsSubmitting(true);
+    let confirmationEmail: string | null = null;
     try {
       const { data, error: authError } = await requireSupabase().auth.signUp({
         email: normalizedEmail,
@@ -46,12 +47,18 @@ export default function RegisterScreen() {
       });
       if (authError) throw authError;
       if (!data.session) {
-        throw new Error("This account needs email confirmation. Ask the app owner to disable Confirm Email in Supabase.");
+        if (!data.user) throw new Error("Could not start account confirmation. Try again.");
+        setPassword("");
+        setConfirmPassword("");
+        confirmationEmail = normalizedEmail;
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not create this account.");
     } finally {
       setIsSubmitting(false);
+    }
+    if (confirmationEmail) {
+      router.replace({ pathname: "/confirm-email", params: { email: confirmationEmail } });
     }
   };
 

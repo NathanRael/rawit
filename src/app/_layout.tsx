@@ -85,6 +85,7 @@ export default function RootLayout() {
       <Stack.Protected guard={!ready || !userId}>
         <Stack.Screen name="auth" />
         <Stack.Screen name="register" />
+        <Stack.Screen name="confirm-email" />
       </Stack.Protected>
       <Stack.Protected guard={ready && Boolean(userId) && syncStatus !== "conflict"}>
         <Stack.Screen name="(app)" />
