@@ -60,6 +60,7 @@ export default function SubscriberDetailsScreen() {
   const [periods, setPeriods] = useState<SubscriberSubscriptionPeriod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditSheetVisible, setIsEditSheetVisible] = useState(false);
+  const [showAllPeriods, setShowAllPeriods] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const goBack = () => {
@@ -134,11 +135,18 @@ export default function SubscriberDetailsScreen() {
   };
 
   const today = getLocalDate();
-  const currentPeriods = periods.filter(
-    (period) =>
-      period.startDate <= today &&
-      (period.lifecycleStatus === "active" || period.lifecycleStatus === "expiring_soon"),
-  );
+  const currentNetworkNames = [
+    ...new Set(
+      periods
+        .filter(
+          (period) =>
+            period.startDate <= today &&
+            (period.lifecycleStatus === "active" || period.lifecycleStatus === "expiring_soon"),
+        )
+        .map((period) => period.wifiNetworkName),
+    ),
+  ];
+  const displayedPeriods = showAllPeriods ? periods : periods.slice(0, 3);
 
   const menuItems: OverflowMenuItem[] = subscriber
     ? [
@@ -191,13 +199,13 @@ export default function SubscriberDetailsScreen() {
             <ThemedText>{subscriber.notes ?? "No notes added."}</ThemedText>
           </Card>
 
-          <View className="gap-3">
+          <View className="gap-2">
             <ThemedText variant="heading">Current subscriptions</ThemedText>
-            {currentPeriods.length === 0 ? (
-              <ThemedText>No current network subscriptions.</ThemedText>
-            ) : (
-              currentPeriods.map((period) => <SubscriptionRecord key={period.id} period={period} />)
-            )}
+            <ThemedText>
+              {currentNetworkNames.length === 0
+                ? "No current network subscriptions."
+                : currentNetworkNames.join(", ")}
+            </ThemedText>
           </View>
 
           <View className="gap-3">
@@ -205,7 +213,18 @@ export default function SubscriberDetailsScreen() {
             {periods.length === 0 ? (
               <ThemedText>No linked subscription history.</ThemedText>
             ) : (
-              periods.map((period) => <SubscriptionRecord key={period.id} period={period} />)
+              <>
+                {displayedPeriods.map((period) => (
+                  <SubscriptionRecord key={period.id} period={period} />
+                ))}
+                {periods.length > 3 ? (
+                  <Button
+                    onPress={() => setShowAllPeriods((showingAll) => !showingAll)}
+                    title={showAllPeriods ? "Show less" : "Show all"}
+                    variant="secondary"
+                  />
+                ) : null}
+              </>
             )}
           </View>
 

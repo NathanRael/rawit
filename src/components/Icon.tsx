@@ -21,6 +21,7 @@ export const iconNames = {
   person: { ios: "person.crop.circle", android: "person", web: "person" },
   warning: { ios: "exclamationmark.triangle", android: "warning", web: "warning" },
   success: { ios: "checkmark.circle", android: "check_circle", web: "check_circle" },
+  filter: { ios: "line.3.horizontal.decrease", android: "filter_list", web: "filter_list" },
   arrow: { ios: "arrow.up.right", android: "north_east", web: "north_east" },
 } as const satisfies Record<string, SymbolViewProps["name"]>;
 

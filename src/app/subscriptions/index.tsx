@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
@@ -7,7 +7,13 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChip } from "@/components/FilterChip";
+import { IconButton } from "@/components/IconButton";
 import { PeriodListItem } from "@/components/PeriodListItem";
+import {
+  SubscriptionPeriodFilterSheet,
+  type AdvancedPeriodFilters,
+  type PeriodSubscriberOption,
+} from "@/components/SubscriptionPeriodFilterSheet";
 import { SubscriptionPeriodSheet } from "@/components/SubscriptionPeriodSheet";
 import { ThemedText } from "@/components/ThemedText";
 import { listSubscriptionPeriods } from "@/lib/database/repositories";
@@ -30,6 +36,13 @@ export default function SubscriptionPeriodsScreen() {
   const asOfDate = useLifecycleDate();
   const [periods, setPeriods] = useState<SubscriptionPeriodDetails[]>([]);
   const [filter, setFilter] = useState<PeriodFilter>("all");
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedPeriodFilters>({
+    subscriberId: null,
+    expirationFrom: null,
+    expirationTo: null,
+  });
+  const [isFilterSheetVisible, setIsFilterSheetVisible] = useState(false);
+  const [filterSheetSession, setFilterSheetSession] = useState(0);
   const [isAddSheetVisible, setIsAddSheetVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,11 +55,6 @@ export default function SubscriptionPeriodsScreen() {
     try {
       const results = await listSubscriptionPeriods({
         asOfDate,
-        lifecycleStatus:
-          filter === "active" || filter === "expiring_soon" || filter === "expired"
-            ? filter
-            : undefined,
-        unpaidOnly: filter === "unpaid",
       });
       if (currentRequest === requestId.current) setPeriods(results);
     } catch (cause) {
@@ -56,7 +64,7 @@ export default function SubscriptionPeriodsScreen() {
     } finally {
       if (currentRequest === requestId.current) setIsLoading(false);
     }
-  }, [asOfDate, filter]);
+  }, [asOfDate]);
 
   useFocusEffect(
     useCallback(() => {
@@ -66,6 +74,53 @@ export default function SubscriptionPeriodsScreen() {
       };
     }, [loadPeriods]),
   );
+
+  const subscribers = useMemo<PeriodSubscriberOption[]>(() => {
+    const uniqueSubscribers = new Map<string, PeriodSubscriberOption>();
+    for (const period of periods) {
+      uniqueSubscribers.set(period.subscriberId, {
+        id: period.subscriberId,
+        name: period.subscriberName,
+      });
+    }
+    return [...uniqueSubscribers.values()].sort((first, second) =>
+      first.name.localeCompare(second.name),
+    );
+  }, [periods]);
+
+  const visiblePeriods = useMemo(
+    () =>
+      periods.filter((period) => {
+        if (filter === "active" && period.lifecycleStatus !== "active") return false;
+        if (filter === "expiring_soon" && period.lifecycleStatus !== "expiring_soon") return false;
+        if (filter === "expired" && period.lifecycleStatus !== "expired") return false;
+        if (filter === "unpaid" && period.paymentStatus === "paid") return false;
+        if (advancedFilters.subscriberId && period.subscriberId !== advancedFilters.subscriberId) {
+          return false;
+        }
+        if (
+          advancedFilters.expirationFrom &&
+          period.expirationDate < advancedFilters.expirationFrom
+        ) {
+          return false;
+        }
+        if (advancedFilters.expirationTo && period.expirationDate > advancedFilters.expirationTo) {
+          return false;
+        }
+        return true;
+      }),
+    [advancedFilters, filter, periods],
+  );
+
+  const activeAdvancedFilterCount =
+    Number(advancedFilters.subscriberId !== null) +
+    Number(advancedFilters.expirationFrom !== null);
+  const hasActiveFilters = filter !== "all" || activeAdvancedFilterCount > 0;
+
+  const clearAllFilters = () => {
+    setFilter("all");
+    setAdvancedFilters({ subscriberId: null, expirationFrom: null, expirationTo: null });
+  };
 
   return (
     <AppScreenFrame
@@ -81,7 +136,22 @@ export default function SubscriptionPeriodsScreen() {
       />
 
       <View className="gap-2">
-        <ThemedText variant="label">Filter periods</ThemedText>
+        <View className="flex-row items-center justify-between">
+          <ThemedText variant="label">Filter periods</ThemedText>
+          <IconButton
+            icon="filter"
+            label={
+              activeAdvancedFilterCount > 0
+                ? `Advanced filters, ${activeAdvancedFilterCount} applied`
+                : "Advanced filters"
+            }
+            onPress={() => {
+              setFilterSheetSession((session) => session + 1);
+              setIsFilterSheetVisible(true);
+            }}
+            variant={activeAdvancedFilterCount > 0 ? "primary" : "secondary"}
+          />
+        </View>
         <View className="flex-row flex-wrap gap-2">
           {filters.map((option) => (
             <FilterChip
@@ -92,6 +162,11 @@ export default function SubscriptionPeriodsScreen() {
             />
           ))}
         </View>
+        {activeAdvancedFilterCount > 0 ? (
+          <ThemedText variant="caption">
+            {activeAdvancedFilterCount} advanced filter{activeAdvancedFilterCount === 1 ? "" : "s"} applied
+          </ThemedText>
+        ) : null}
       </View>
 
       {isLoading ? (
@@ -105,28 +180,28 @@ export default function SubscriptionPeriodsScreen() {
           <ThemedText>{error}</ThemedText>
           <Button onPress={() => void loadPeriods()} title="Try again" variant="secondary" />
         </Card>
-      ) : periods.length === 0 ? (
+      ) : visiblePeriods.length === 0 ? (
         <EmptyState
           action={
-            filter === "all"
+            !hasActiveFilters
               ? {
                   label: "Add a period",
                   onPress: () => setIsAddSheetVisible(true),
                   accessibilityHint: "Create a subscription period",
                 }
-              : { label: "Show all periods", onPress: () => setFilter("all") }
+              : { label: "Clear filters", onPress: clearAllFilters }
           }
           description={
-            filter === "all"
+            !hasActiveFilters
               ? "Create a period to track a subscriber’s network access, expiration, and amount due."
-              : "No periods match this filter. Try another status or show all periods."
+              : "No periods match these filters. Clear them to see all periods."
           }
           icon="plans"
-          title={filter === "all" ? "No periods yet" : "No matching periods"}
+          title={!hasActiveFilters ? "No periods yet" : "No matching periods"}
         />
       ) : (
         <View className="gap-3">
-          {periods.map((period) => (
+          {visiblePeriods.map((period) => (
             <PeriodListItem
               key={period.id}
               onPress={() => router.push(subscriptionDetailsHref(period.id))}
@@ -135,6 +210,17 @@ export default function SubscriptionPeriodsScreen() {
           ))}
         </View>
       )}
+      <SubscriptionPeriodFilterSheet
+        key={filterSheetSession}
+        filters={advancedFilters}
+        onApply={(nextFilters) => {
+          setAdvancedFilters(nextFilters);
+          setIsFilterSheetVisible(false);
+        }}
+        onClose={() => setIsFilterSheetVisible(false)}
+        subscribers={subscribers}
+        visible={isFilterSheetVisible}
+      />
       <SubscriptionPeriodSheet
         onClose={() => setIsAddSheetVisible(false)}
         onSaved={(periodId) => {
