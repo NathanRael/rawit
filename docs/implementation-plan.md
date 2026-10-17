@@ -65,22 +65,26 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 
 ## 5. Payments and renewals
 
-- [ ] Record, view, edit, and remove payment entries with amount, date, and optional notes.
-- [ ] Derive payment status from amount due and payment total: unpaid, partially paid, or paid. Do not change lifecycle when payment changes.
-- [ ] Show payment history and remaining amount; make payment totals consistent across details, lists, and overview.
-- [ ] Renew by creating a new period prefilled from the prior one. Never overwrite the old period or its payments.
-- [ ] Keep related payment and period writes transactional.
+- [x] Record, view, edit, and remove payment entries with amount, date, and optional notes.
+- [x] Derive payment status from amount due and payment total: unpaid, partially paid, or paid. Do not change lifecycle when payment changes.
+- [x] Show payment history and remaining amount; make payment totals consistent across details, lists, and overview.
+- [x] Renew by creating a new period prefilled from the prior one. Never overwrite the old period or its payments.
+- [x] Keep related payment and period writes transactional.
 
 **Acceptance:** Payments and balances persist accurately; renewal creates a separate period and keeps the full prior history.
 
+**Validation:** `pnpm lint`, `pnpm typecheck`, payment/date/balance tests, and `pnpm exec expo export --platform all` pass. Payment and renewal flows use SQLite transactions; installed-build interaction and persistence were not manually smoke-tested.
+
 ## 6. Overview
 
-- [ ] Make the primary screen answer: who owes money, how much, and which periods need attention.
-- [ ] Show counts or summaries for active, expiring soon, and expired periods, plus total unpaid amount.
-- [ ] Show actionable attention items with subscriber, network, expiration, amount/payment state, and navigation to the period.
-- [ ] Refresh from SQLite on app open/foreground; do not treat cached UI state as business data.
+- [x] Make the primary screen answer: who owes money, how much, and which periods need attention.
+- [x] Show counts or summaries for active, expiring soon, and expired periods, plus total unpaid amount.
+- [x] Show actionable attention items with subscriber, network, expiration, amount/payment state, and navigation to the period.
+- [x] Refresh from SQLite on app open/foreground; do not treat cached UI state as business data.
 
 **Acceptance:** Overview figures agree with stored records and date-derived statuses.
+
+**Validation:** Overview projection tests, date/balance tests, lint, typecheck, and `pnpm exec expo export --platform all` pass. The Home screen reloads on route focus and app foreground. Installed-build SQLite behavior was not manually smoke-tested.
 
 ## 7. Local expiration reminders
 
@@ -144,3 +148,5 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 | 2026-10-17 | WiFi networks | Added network CRUD screens, a draggable Expo UI bottom-sheet add flow, reusable centered empty state, required-name validation, and deletion protection for linked history. Lint, typecheck, and all-platform export passed; native interaction and persistence smoke tests remain unverified. |
 | 2026-10-17 | Subscribers | Added subscriber CRUD, search, current subscription summary, full network/payment-status history, and deletion protection for linked periods. Added subscriber bottom-sheet creation and one persistent bottom navigation across routes. Lint, typecheck, SQLite query smoke test, and all-platform export passed; installed-build behavior remains unverified. |
 | 2026-10-17 | Subscription periods | Added period creation/editing, joined list/detail views, lifecycle/payment filters, cancellation, and payment-history-safe deletion. Lint, typecheck, date tests, SQLite query smoke test, and all-platform export passed; installed-build interaction and restart persistence remain unverified. |
+| 2026-10-17 | Payments and renewals | Added transactional payment CRUD, history and remaining balances across period details/lists/home, and renewal creation as a separate prefilled period. Lint, typecheck, date/balance tests, and all-platform export passed; installed-build interaction and persistence remain unverified. |
+| 2026-10-17 | Overview | Replaced the Home component preview with SQLite-refreshed lifecycle counts, total outstanding balance, and tappable attention items. Overview/date tests, lint, typecheck, and all-platform export passed; installed-build behavior remains unverified. |
