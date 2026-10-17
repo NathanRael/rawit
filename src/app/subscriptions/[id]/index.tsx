@@ -3,10 +3,12 @@ import { ActivityIndicator, Alert, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 import { AppScreenFrame } from "@/components/AppScreenFrame";
-import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
-import { PaymentForm } from "@/components/PaymentForm";
+import { DetailDivider, DetailRow } from "@/components/DetailRow";
+import { OverflowMenu, type OverflowMenuItem } from "@/components/OverflowMenu";
+import { PaymentSheet } from "@/components/PaymentSheet";
+import { SubscriptionStatusBadges } from "@/components/SubscriptionStatusBadges";
 import { ThemedText } from "@/components/ThemedText";
 import {
   cancelSubscriptionPeriod,
@@ -22,30 +24,7 @@ import {
   subscriptionsHref,
 } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
-import type { Payment, SubscriptionLifecycleStatus, SubscriptionPeriodDetails } from "@/types";
-
-function lifecycleLabel(status: SubscriptionLifecycleStatus): string {
-  if (status === "expiring_soon") return "Expiring soon";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-function lifecycleTone(status: SubscriptionLifecycleStatus): "success" | "warning" | "danger" | "neutral" {
-  if (status === "active") return "success";
-  if (status === "expiring_soon") return "warning";
-  if (status === "expired") return "danger";
-  return "neutral";
-}
-
-function paymentLabel(status: SubscriptionPeriodDetails["paymentStatus"]): string {
-  if (status === "partially_paid") return "Partially paid";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-function paymentTone(status: SubscriptionPeriodDetails["paymentStatus"]): "success" | "warning" | "danger" {
-  if (status === "paid") return "success";
-  if (status === "partially_paid") return "warning";
-  return "danger";
-}
+import type { Payment, SubscriptionPeriodDetails } from "@/types";
 
 export default function SubscriptionPeriodDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -56,9 +35,14 @@ export default function SubscriptionPeriodDetailsScreen() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorking, setIsWorking] = useState(false);
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [isPaymentSheetVisible, setIsPaymentSheetVisible] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace(subscriptionsHref);
+  };
 
   const loadPeriod = useCallback(async () => {
     if (!periodId) {
@@ -140,6 +124,18 @@ export default function SubscriptionPeriodDetailsScreen() {
     }
   };
 
+  const requestDelete = () => {
+    if (!period) return;
+    Alert.alert(
+      "Delete subscription period?",
+      `Delete ${period.subscriberName}’s period on ${period.wifiNetworkName}? This action cannot be undone.`,
+      [
+        { text: "Keep period", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => void confirmDelete() },
+      ],
+    );
+  };
+
   const confirmPaymentDelete = async (payment: Payment) => {
     setIsWorking(true);
     setError(null);
@@ -148,7 +144,7 @@ export default function SubscriptionPeriodDetailsScreen() {
       if (!deleted) {
         setError("This payment no longer exists.");
       } else {
-        setShowPaymentForm(false);
+        setIsPaymentSheetVisible(false);
         setEditingPayment(null);
       }
       await loadPeriod();
@@ -175,20 +171,59 @@ export default function SubscriptionPeriodDetailsScreen() {
     );
   };
 
-  const requestDelete = () => {
-    if (!period) return;
-    Alert.alert(
-      "Delete subscription period?",
-      `Delete ${period.subscriberName}’s period on ${period.wifiNetworkName}? This action cannot be undone.`,
-      [
-        { text: "Keep period", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => void confirmDelete() },
-      ],
-    );
+  const openNewPayment = () => {
+    setEditingPayment(null);
+    setIsPaymentSheetVisible(true);
   };
 
+  const openEditPayment = (payment: Payment) => {
+    setEditingPayment(payment);
+    setIsPaymentSheetVisible(true);
+  };
+
+  const closePaymentSheet = () => {
+    setIsPaymentSheetVisible(false);
+    setEditingPayment(null);
+  };
+
+  const menuItems: OverflowMenuItem[] = period
+    ? [
+        {
+          key: "edit",
+          label: "Edit period",
+          onPress: () => router.push(subscriptionEditHref(period.id)),
+          disabled: isWorking,
+        },
+        ...(period.lifecycleStatus !== "cancelled"
+          ? [
+              {
+                key: "cancel",
+                label: "Cancel period",
+                onPress: requestCancel,
+                destructive: true,
+                disabled: isWorking,
+              },
+            ]
+          : []),
+        {
+          key: "delete",
+          label: "Delete period",
+          onPress: requestDelete,
+          destructive: true,
+          disabled: isWorking || period.paymentCount > 0,
+        },
+      ]
+    : [];
+
   return (
-    <AppScreenFrame subtitle="Review period dates, lifecycle, amount, and payment status." title="Period details">
+    <AppScreenFrame
+      headerAction={
+        period ? <OverflowMenu items={menuItems} label="More period actions" /> : null
+      }
+      onBack={goBack}
+      subtitle="Review period dates, lifecycle, amount, and payment status."
+      title="Period details"
+    >
       {isLoading ? (
         <View className="items-center gap-3 py-8">
           <ActivityIndicator accessibilityLabel="Loading subscription period details" />
@@ -202,140 +237,127 @@ export default function SubscriptionPeriodDetailsScreen() {
         </Card>
       ) : period ? (
         <View className="gap-5">
-          <Card className="gap-4">
+          <Card className="gap-3">
             <View className="gap-1">
               <ThemedText variant="heading">{period.subscriberName}</ThemedText>
               <ThemedText>{period.wifiNetworkName}</ThemedText>
             </View>
-            <View className="flex-row flex-wrap gap-2">
-              <Badge label={`Lifecycle · ${lifecycleLabel(period.lifecycleStatus)}`} tone={lifecycleTone(period.lifecycleStatus)} />
-              <Badge label={`Payment · ${paymentLabel(period.paymentStatus)}`} tone={paymentTone(period.paymentStatus)} />
-            </View>
-            <View className="gap-1">
-              <ThemedText variant="label">Period</ThemedText>
-              <ThemedText>Starts · {formatDateLocal(period.startDate)}</ThemedText>
-              <ThemedText>Expires · {formatDateLocal(period.expirationDate)}</ThemedText>
-              <ThemedText>
-                Duration · {period.durationValue} {period.durationUnit}{period.durationValue === 1 ? "" : "s"}
-              </ThemedText>
-            </View>
-            <View className="gap-1">
-              <ThemedText variant="label">Amount</ThemedText>
-              <ThemedText>Due · {formatCurrency(period.amount)}</ThemedText>
-              <ThemedText>Paid · {formatCurrency(period.amountPaid)}</ThemedText>
-              <ThemedText>
-                Remaining · {formatCurrency(getRemainingPaymentAmount(period.amount, period.amountPaid))}
-              </ThemedText>
-            </View>
-            <View className="gap-1">
-              <ThemedText variant="label">Notes</ThemedText>
-              <ThemedText>{period.notes ?? "No notes added."}</ThemedText>
-            </View>
+            <SubscriptionStatusBadges
+              lifecycleStatus={period.lifecycleStatus}
+              paymentStatus={period.paymentStatus}
+            />
+          </Card>
+
+          <Card>
+            <DetailRow label="Starts" value={formatDateLocal(period.startDate)} />
+            <DetailDivider />
+            <DetailRow label="Expires" value={formatDateLocal(period.expirationDate)} />
+            <DetailDivider />
+            <DetailRow
+              label="Duration"
+              value={`${period.durationValue} ${period.durationUnit}${period.durationValue === 1 ? "" : "s"}`}
+            />
             {period.cancelledAt ? (
-              <ThemedText>Cancelled · {new Date(period.cancelledAt).toLocaleDateString()}</ThemedText>
+              <>
+                <DetailDivider />
+                <DetailRow
+                  label="Cancelled"
+                  value={new Date(period.cancelledAt).toLocaleDateString()}
+                />
+              </>
             ) : null}
           </Card>
 
+          <Card>
+            <DetailRow label="Amount due" value={formatCurrency(period.amount)} />
+            <DetailDivider />
+            <DetailRow label="Paid" value={formatCurrency(period.amountPaid)} />
+            <DetailDivider />
+            <DetailRow
+              emphasized
+              label="Remaining"
+              value={formatCurrency(getRemainingPaymentAmount(period.amount, period.amountPaid))}
+            />
+          </Card>
+
+          <Card className="gap-2">
+            <ThemedText variant="label">Notes</ThemedText>
+            <ThemedText>{period.notes ?? "No notes added."}</ThemedText>
+          </Card>
+
           <View className="gap-3">
-            <ThemedText variant="heading">Payment history</ThemedText>
-            {payments.length === 0 ? (
-              <ThemedText>No payments recorded for this period.</ThemedText>
-            ) : (
-              payments.map((payment) => (
-                <Card className="gap-3" key={payment.id}>
-                  <View className="gap-1">
-                    <ThemedText variant="label">{formatCurrency(payment.amount)}</ThemedText>
-                    <ThemedText>Paid · {formatDateLocal(payment.paidAt)}</ThemedText>
-                    {payment.notes ? <ThemedText>Notes · {payment.notes}</ThemedText> : null}
-                  </View>
-                  <View className="gap-2">
-                    <Button
-                      disabled={isWorking}
-                      onPress={() => {
-                        setEditingPayment(payment);
-                        setShowPaymentForm(true);
-                      }}
-                      title="Edit payment"
-                      variant="secondary"
-                    />
-                    <Button
-                      disabled={isWorking}
-                      onPress={() => requestPaymentDelete(payment)}
-                      title="Remove payment"
-                      variant="danger"
-                    />
-                  </View>
-                </Card>
-              ))
-            )}
-            {showPaymentForm && period ? (
-              <Card>
-                <PaymentForm
-                  key={editingPayment?.id ?? "new-payment"}
-                  onCancel={() => {
-                    setShowPaymentForm(false);
-                    setEditingPayment(null);
-                  }}
-                  onSaved={async () => {
-                    setShowPaymentForm(false);
-                    setEditingPayment(null);
-                    await loadPeriod();
-                  }}
-                  payment={editingPayment ?? undefined}
-                  subscriptionId={period.id}
-                />
-              </Card>
-            ) : (
+            <View className="flex-row items-center justify-between gap-3">
+              <ThemedText variant="heading">Payment history</ThemedText>
               <Button
                 disabled={isWorking}
-                onPress={() => {
-                  setEditingPayment(null);
-                  setShowPaymentForm(true);
-                }}
-                title="Record a payment"
+                onPress={openNewPayment}
+                size="sm"
+                title="Record payment"
                 variant="secondary"
               />
-            )}
+            </View>
+            <Card>
+              {payments.length === 0 ? (
+                <ThemedText>No payments recorded for this period.</ThemedText>
+              ) : (
+                payments.map((payment, index) => (
+                  <View className="gap-2" key={payment.id}>
+                    {index > 0 ? <DetailDivider /> : null}
+                    <View className="flex-row items-center justify-between gap-3 py-1">
+                      <View className="flex-1 gap-1">
+                        <ThemedText variant="heading">{formatCurrency(payment.amount)}</ThemedText>
+                        <ThemedText variant="caption">{formatDateLocal(payment.paidAt)}</ThemedText>
+                        {payment.notes ? <ThemedText>{payment.notes}</ThemedText> : null}
+                      </View>
+                      <OverflowMenu
+                        items={[
+                          {
+                            key: "edit",
+                            label: "Edit payment",
+                            onPress: () => openEditPayment(payment),
+                            disabled: isWorking,
+                          },
+                          {
+                            key: "remove",
+                            label: "Remove payment",
+                            onPress: () => requestPaymentDelete(payment),
+                            destructive: true,
+                            disabled: isWorking,
+                          },
+                        ]}
+                        label={`More actions for payment on ${formatDateLocal(payment.paidAt)}`}
+                      />
+                    </View>
+                  </View>
+                ))
+              )}
+            </Card>
           </View>
 
           {error ? <ThemedText accessibilityRole="alert">{error}</ThemedText> : null}
-          <Button
-            disabled={isWorking}
-            onPress={() => router.push(subscriptionEditHref(period.id))}
-            title="Edit period"
-            accessibilityHint="Change this subscription period’s subscriber, network, dates, amount, or notes"
-          />
+          {period.paymentCount > 0 ? (
+            <ThemedText variant="caption">
+              This period has {period.paymentCount} payment{period.paymentCount === 1 ? "" : "s"}. Its history must be kept, so deletion is unavailable.
+            </ThemedText>
+          ) : null}
+
           <Button
             disabled={isWorking}
             onPress={() => router.push(renewSubscriptionHref(period.id))}
             title="Renew period"
-            variant="secondary"
             accessibilityHint="Create a separate new period prefilled from this one"
           />
-          {period.lifecycleStatus !== "cancelled" ? (
-            <Button
-              disabled={isWorking}
-              onPress={requestCancel}
-              title="Cancel period"
-              variant="secondary"
-            />
-          ) : null}
-          <Button
-            accessibilityHint={
-              period.paymentCount > 0
-                ? "A period with payment history cannot be deleted"
-                : "Permanently delete this period"
-            }
-            disabled={isWorking || period.paymentCount > 0}
-            onPress={requestDelete}
-            title="Delete period"
-            variant="danger"
+
+          <PaymentSheet
+            onClose={closePaymentSheet}
+            onSaved={async () => {
+              closePaymentSheet();
+              await loadPeriod();
+            }}
+            payment={editingPayment ?? undefined}
+            subscriptionId={period.id}
+            visible={isPaymentSheetVisible}
           />
-          {period.paymentCount > 0 ? (
-            <ThemedText>
-              This period has {period.paymentCount} payment{period.paymentCount === 1 ? "" : "s"}. Its history must be kept, so deletion is unavailable.
-            </ThemedText>
-          ) : null}
         </View>
       ) : null}
     </AppScreenFrame>

@@ -5,6 +5,9 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { AppScreenFrame } from "@/components/AppScreenFrame";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DetailDivider, DetailRow } from "@/components/DetailRow";
+import { OverflowMenu, type OverflowMenuItem } from "@/components/OverflowMenu";
+import { SubscriptionStatusBadges } from "@/components/SubscriptionStatusBadges";
 import { ThemedText } from "@/components/ThemedText";
 import {
   deleteSubscriber,
@@ -20,30 +23,30 @@ import {
 import { subscriberEditHref, subscribersHref } from "@/lib/navigation";
 import type { Subscriber, SubscriberSubscriptionPeriod } from "@/types";
 
-function lifecycleLabel(period: SubscriberSubscriptionPeriod): string {
-  if (period.lifecycleStatus === "expiring_soon") return "Expiring soon";
-  return period.lifecycleStatus.charAt(0).toUpperCase() + period.lifecycleStatus.slice(1);
-}
-
-function paymentLabel(period: SubscriberSubscriptionPeriod): string {
-  if (period.paymentStatus === "partially_paid") return "Partially paid";
-  return period.paymentStatus.charAt(0).toUpperCase() + period.paymentStatus.slice(1);
-}
-
 function SubscriptionRecord({ period }: { period: SubscriberSubscriptionPeriod }) {
   return (
-    <Card className="gap-2">
-      <ThemedText variant="label">{period.wifiNetworkName}</ThemedText>
-      <ThemedText>Lifecycle · {lifecycleLabel(period)}</ThemedText>
-      <ThemedText>Payment · {paymentLabel(period)}</ThemedText>
-      <ThemedText>Started · {formatDateLocal(period.startDate)}</ThemedText>
-      <ThemedText>Expires · {formatDateLocal(period.expirationDate)}</ThemedText>
-      <ThemedText>Due · {formatCurrency(period.amount)}</ThemedText>
-      <ThemedText>Paid · {formatCurrency(period.amountPaid)}</ThemedText>
-      <ThemedText>
-        Remaining · {formatCurrency(getRemainingPaymentAmount(period.amount, period.amountPaid))}
-      </ThemedText>
-      {period.notes ? <ThemedText>{period.notes}</ThemedText> : null}
+    <Card className="gap-3">
+      <View className="gap-2">
+        <ThemedText variant="heading">{period.wifiNetworkName}</ThemedText>
+        <SubscriptionStatusBadges
+          lifecycleStatus={period.lifecycleStatus}
+          paymentStatus={period.paymentStatus}
+        />
+      </View>
+      <DetailRow label="Starts" value={formatDateLocal(period.startDate)} />
+      <DetailDivider />
+      <DetailRow label="Expires" value={formatDateLocal(period.expirationDate)} />
+      <DetailDivider />
+      <DetailRow label="Due" value={formatCurrency(period.amount)} />
+      <DetailDivider />
+      <DetailRow label="Paid" value={formatCurrency(period.amountPaid)} />
+      <DetailDivider />
+      <DetailRow
+        emphasized
+        label="Remaining"
+        value={formatCurrency(getRemainingPaymentAmount(period.amount, period.amountPaid))}
+      />
+      {period.notes ? <ThemedText variant="caption">{period.notes}</ThemedText> : null}
     </Card>
   );
 }
@@ -56,6 +59,11 @@ export default function SubscriberDetailsScreen() {
   const [periods, setPeriods] = useState<SubscriberSubscriptionPeriod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace(subscribersHref);
+  };
 
   const loadSubscriber = useCallback(async () => {
     if (!subscriberId) {
@@ -130,8 +138,32 @@ export default function SubscriberDetailsScreen() {
       (period.lifecycleStatus === "active" || period.lifecycleStatus === "expiring_soon"),
   );
 
+  const menuItems: OverflowMenuItem[] = subscriber
+    ? [
+        {
+          key: "edit",
+          label: "Edit subscriber",
+          onPress: () => router.push(subscriberEditHref(subscriber.id)),
+        },
+        {
+          key: "delete",
+          label: "Delete subscriber",
+          onPress: requestDelete,
+          destructive: true,
+          disabled: periods.length > 0,
+        },
+      ]
+    : [];
+
   return (
-    <AppScreenFrame subtitle="View subscriber details and linked history." title="Subscriber details">
+    <AppScreenFrame
+      headerAction={
+        subscriber ? <OverflowMenu items={menuItems} label="More subscriber actions" /> : null
+      }
+      onBack={goBack}
+      subtitle="View subscriber details and linked history."
+      title="Subscriber details"
+    >
       {isLoading ? (
         <View className="items-center gap-3 py-8">
           <ActivityIndicator accessibilityLabel="Loading subscriber details" />
@@ -145,20 +177,16 @@ export default function SubscriberDetailsScreen() {
         </Card>
       ) : subscriber ? (
         <View className="gap-5">
-          <Card className="gap-4">
+          <Card>
             <ThemedText variant="heading">{subscriber.name}</ThemedText>
-            <View className="gap-1">
-              <ThemedText variant="label">Phone</ThemedText>
-              <ThemedText>{subscriber.phone ?? "Not provided"}</ThemedText>
-            </View>
-            <View className="gap-1">
-              <ThemedText variant="label">Email</ThemedText>
-              <ThemedText>{subscriber.email ?? "Not provided"}</ThemedText>
-            </View>
-            <View className="gap-1">
-              <ThemedText variant="label">Notes</ThemedText>
-              <ThemedText>{subscriber.notes ?? "No notes added."}</ThemedText>
-            </View>
+            <DetailRow label="Phone" value={subscriber.phone ?? "Not provided"} />
+            <DetailDivider />
+            <DetailRow label="Email" value={subscriber.email ?? "Not provided"} />
+          </Card>
+
+          <Card className="gap-2">
+            <ThemedText variant="label">Notes</ThemedText>
+            <ThemedText>{subscriber.notes ?? "No notes added."}</ThemedText>
           </Card>
 
           <View className="gap-3">
@@ -180,22 +208,12 @@ export default function SubscriberDetailsScreen() {
           </View>
 
           {error ? <ThemedText accessibilityRole="alert">{error}</ThemedText> : null}
-          <Button
-            onPress={() => router.push(subscriberEditHref(subscriber.id))}
-            title="Edit subscriber"
-            accessibilityHint="Change this subscriber's name, contact details, or notes"
-          />
           {periods.length > 0 ? (
-            <View className="gap-2">
-              <Button disabled onPress={requestDelete} title="Delete subscriber" variant="danger" />
-              <ThemedText>
-                A subscriber with linked subscription or payment history cannot be deleted. The history
-                remains linked to this subscriber.
-              </ThemedText>
-            </View>
-          ) : (
-            <Button onPress={requestDelete} title="Delete subscriber" variant="danger" />
-          )}
+            <ThemedText variant="caption">
+              A subscriber with linked subscription or payment history cannot be deleted. The history
+              remains linked to this subscriber.
+            </ThemedText>
+          ) : null}
         </View>
       ) : null}
     </AppScreenFrame>

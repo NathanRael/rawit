@@ -2,10 +2,12 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
+import { AppScreenFrame } from "@/components/AppScreenFrame";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { DetailDivider, DetailRow } from "@/components/DetailRow";
+import { OverflowMenu, type OverflowMenuItem } from "@/components/OverflowMenu";
 import { ThemedText } from "@/components/ThemedText";
-import { AppScreenFrame } from "@/components/AppScreenFrame";
 import {
   deleteWifiNetwork,
   getWifiNetworkById,
@@ -22,6 +24,11 @@ export default function WifiNetworkDetailsScreen() {
   const [subscriptionCount, setSubscriptionCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const goBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace(wifiNetworksHref);
+  };
 
   const loadNetwork = useCallback(async () => {
     if (!networkId) {
@@ -89,8 +96,30 @@ export default function WifiNetworkDetailsScreen() {
     }
   };
 
+  const menuItems: OverflowMenuItem[] = network
+    ? [
+        {
+          key: "edit",
+          label: "Edit network",
+          onPress: () => router.push({ pathname: "/wifi/[id]/edit", params: { id: network.id } }),
+        },
+        {
+          key: "delete",
+          label: "Delete network",
+          onPress: requestDelete,
+          destructive: true,
+          disabled: subscriptionCount > 0,
+        },
+      ]
+    : [];
+
   return (
-    <AppScreenFrame subtitle="View and manage the saved network details." title="Network details">
+    <AppScreenFrame
+      headerAction={network ? <OverflowMenu items={menuItems} label="More network actions" /> : null}
+      onBack={goBack}
+      subtitle="View and manage the saved network details."
+      title="Network details"
+    >
       {isLoading ? (
         <View className="items-center gap-3 py-8">
           <ActivityIndicator accessibilityLabel="Loading network details" />
@@ -104,47 +133,32 @@ export default function WifiNetworkDetailsScreen() {
         </Card>
       ) : network ? (
         <View className="gap-5">
-          <Card className="gap-4">
+          <Card className="gap-3">
             <ThemedText variant="heading">{network.name}</ThemedText>
-            <View className="gap-1">
-              <ThemedText variant="label">SSID</ThemedText>
-              <ThemedText>{network.ssid ?? "Not provided"}</ThemedText>
-            </View>
-            <View className="gap-1">
-              <ThemedText variant="label">Notes</ThemedText>
-              <ThemedText>{network.notes ?? "No notes added."}</ThemedText>
-            </View>
-            <View className="gap-1">
-              <ThemedText variant="label">Subscription history</ThemedText>
-              <ThemedText>
-                {subscriptionCount === 0
+            <DetailRow label="SSID" value={network.ssid ?? "Not provided"} />
+            <DetailDivider />
+            <DetailRow
+              label="History"
+              value={
+                subscriptionCount === 0
                   ? "No linked subscriptions"
-                  : `${subscriptionCount} linked subscription${subscriptionCount === 1 ? "" : "s"}`}
-              </ThemedText>
-            </View>
+                  : `${subscriptionCount} linked subscription${subscriptionCount === 1 ? "" : "s"}`
+              }
+            />
           </Card>
+
+          <Card className="gap-2">
+            <ThemedText variant="label">Notes</ThemedText>
+            <ThemedText>{network.notes ?? "No notes added."}</ThemedText>
+          </Card>
+
           {error ? <ThemedText accessibilityRole="alert">{error}</ThemedText> : null}
-          <Button
-            onPress={() => router.push({ pathname: "/wifi/[id]/edit", params: { id: network.id } })}
-            title="Edit network"
-            accessibilityHint="Change this network's name, SSID, or notes"
-          />
           {subscriptionCount > 0 ? (
-            <View className="gap-2">
-              <Button
-                disabled
-                onPress={requestDelete}
-                title="Delete network"
-                variant="danger"
-              />
-              <ThemedText>
-                A network with subscription history cannot be deleted. The history remains linked to
-                this network.
-              </ThemedText>
-            </View>
-          ) : (
-            <Button onPress={requestDelete} title="Delete network" variant="danger" />
-          )}
+            <ThemedText variant="caption">
+              A network with subscription history cannot be deleted. The history remains linked to
+              this network.
+            </ThemedText>
+          ) : null}
         </View>
       ) : null}
     </AppScreenFrame>
