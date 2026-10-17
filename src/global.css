@@ -3,3 +3,18 @@
 @import "tailwindcss/utilities.css";
 
 @import "nativewind/theme";
+
+@theme {
+  --color-brand: #ffbf24;
+  --color-canvas: #f8f8f6;
+  --color-ink: #000000;
+  --color-charcoal: #212121;
+  --color-success: #34d399;
+  --color-danger: #f472b6;
+  --color-info: #a78bfa;
+  --color-neutral: #e8e8e5;
+  --color-placeholder: #666666;
+  --radius-control: 12px;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+}
