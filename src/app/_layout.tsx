@@ -1,14 +1,25 @@
 import "../global.css";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Text, View } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
 import { initializeDatabase } from "@/lib/database";
 import { reconcileAllReminders, refreshRemindersOnLifecycleChange } from "@/lib/notifications/reminders";
 import { refreshLifecycleDate } from "@/store/lifecycle";
-import { AppNavigationBar } from "@/components/AppNavigationBar";
+import { AppNavigationBar, type TabNavigationDirection } from "@/components/AppNavigationBar";
+
+type PendingTabTransition = {
+  id: number;
+  href: Href;
+  pathname: string;
+  direction: TabNavigationDirection | undefined;
+};
+
+function normalizePathname(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+}
 
 function refreshAppClockAndReminders(): void {
   refreshLifecycleDate();
@@ -18,6 +29,46 @@ function refreshAppClockAndReminders(): void {
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
   const [startupError, setStartupError] = useState<string | null>(null);
+  const [pendingTabTransition, setPendingTabTransition] = useState<PendingTabTransition | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
+  const nextTabTransitionId = useRef(0);
+  const dispatchedTabTransitionId = useRef(0);
+
+  const navigateToTab = useCallback(
+    (href: Href, targetPathname: string, direction: TabNavigationDirection | undefined) => {
+      if (normalizePathname(pathname) === targetPathname) {
+        setPendingTabTransition(null);
+        return;
+      }
+
+      setPendingTabTransition({
+        id: ++nextTabTransitionId.current,
+        href,
+        pathname: targetPathname,
+        direction,
+      });
+    },
+    [pathname],
+  );
+
+  useLayoutEffect(() => {
+    if (!pendingTabTransition || dispatchedTabTransitionId.current === pendingTabTransition.id) return;
+
+    // The Stack options have committed with this direction before replacing the route.
+    dispatchedTabTransitionId.current = pendingTabTransition.id;
+    router.replace(pendingTabTransition.href);
+  }, [pendingTabTransition, router]);
+
+  useEffect(() => {
+    if (pendingTabTransition?.pathname !== normalizePathname(pathname)) return;
+
+    const transitionId = pendingTabTransition.id;
+    const resetFrame = requestAnimationFrame(() => {
+      setPendingTabTransition((current) => (current?.id === transitionId ? null : current));
+    });
+    return () => cancelAnimationFrame(resetFrame);
+  }, [pathname, pendingTabTransition]);
 
   useEffect(() => {
     refreshAppClockAndReminders();
@@ -62,8 +113,13 @@ export default function RootLayout() {
     <>
       <StatusBar style="dark" />
       <View className="flex-1 bg-canvas">
-        <Stack screenOptions={{ headerShown: false }} />
-        <AppNavigationBar />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animationTypeForReplace: pendingTabTransition?.direction ?? "pop",
+          }}
+        />
+        <AppNavigationBar onNavigate={navigateToTab} />
       </View>
     </>
   );
