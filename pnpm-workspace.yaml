@@ -1,0 +1,9 @@
+overrides:
+  lightningcss: 1.30.1
+
+allowBuilds:
+  '@tailwindcss/oxide': true
+
+# pnpm 10 still reads this setting; pnpm 11 uses allowBuilds above.
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
