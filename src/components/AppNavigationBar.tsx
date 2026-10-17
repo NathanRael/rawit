@@ -6,19 +6,13 @@ import { BottomNavbar, type NavbarItem } from "@/components/BottomNavbar";
 import { subscribersHref, subscriptionsHref, wifiNetworksHref } from "@/lib/navigation";
 import { spacing } from "@/theme";
 
-export type TabNavigationDirection = "push" | "pop";
-
 type NavigationItem = NavbarItem & {
   href: Href;
   pathname: string;
 };
 
 type AppNavigationBarProps = {
-  onNavigate: (
-    href: Href,
-    pathname: string,
-    direction: TabNavigationDirection | undefined,
-  ) => void;
+  onNavigate: (href: Href, pathname: string) => void;
 };
 
 const navigationItems: NavigationItem[] = [
@@ -50,22 +44,11 @@ export function AppNavigationBar({ onNavigate }: AppNavigationBarProps) {
   const activeIndex = getActiveIndex(pathname);
 
   const handleChange = (key: string) => {
-    const destinationIndex = navigationItems.findIndex((item) => item.key === key);
-    const destination = navigationItems[destinationIndex];
+    const destination = navigationItems.find((item) => item.key === key);
     if (!destination) return;
 
-    const currentPathname = normalizePathname(pathname);
-    if (currentPathname === destination.pathname) {
-      // Let the root cancel a not-yet-dispatched tab request if the user returns
-      // to the route that is still on screen.
-      onNavigate(destination.href, destination.pathname, undefined);
-      return;
-    }
-
-    const direction =
-      destinationIndex > activeIndex ? "push" : destinationIndex < activeIndex ? "pop" : undefined;
-
-    onNavigate(destination.href, destination.pathname, direction);
+    // The root cancels a not-yet-dispatched request when the destination is already on screen.
+    onNavigate(destination.href, destination.pathname);
   };
 
   return (
