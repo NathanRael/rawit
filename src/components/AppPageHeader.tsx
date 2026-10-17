@@ -27,7 +27,7 @@ export function AppPageHeader({ action }: AppPageHeaderProps) {
           </ThemedText>
         </View>
       </View>
-      {action}
+      {action ? <View className="h-12 w-12 shrink-0 items-center justify-center">{action}</View> : null}
     </View>
   );
 }

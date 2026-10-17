@@ -1,11 +1,12 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { AppPageHeader } from "@/components/AppPageHeader";
 import { IconButton } from "@/components/IconButton";
 import { ThemedText } from "@/components/ThemedText";
-import { spacing } from "@/theme";
+import { colors, spacing } from "@/theme";
 
 type AppScreenFrameProps = {
   title: string;
@@ -28,8 +29,43 @@ export function AppScreenFrame({
   headerAction,
   children,
 }: AppScreenFrameProps) {
+  const [isScrolled, setIsScrolled] = useState(false);
+
   return (
     <SafeAreaView className="flex-1 bg-canvas" edges={["top", "left", "right"]} style={{ flex: 1 }}>
+      <View
+        className="z-10"
+        style={{
+          backgroundColor: isScrolled ? colors.canvas : "transparent",
+          borderBottomColor: "rgba(0, 0, 0, 0.12)",
+          borderBottomWidth: isScrolled ? StyleSheet.hairlineWidth : 0,
+        }}
+      >
+        <View className="gap-6 px-4 pb-6 pt-4">
+          {onBack ? (
+            <>
+              <View className="flex-row items-center gap-3">
+                <IconButton icon="back" label="Go back" onPress={onBack} />
+                <ThemedText className="min-w-0 flex-1" numberOfLines={2} variant="title">
+                  {title}
+                </ThemedText>
+                {headerAction ? (
+                  <View className="h-12 w-12 shrink-0 items-center justify-center">{headerAction}</View>
+                ) : null}
+              </View>
+              {subtitle ? <ThemedText variant="body">{subtitle}</ThemedText> : null}
+            </>
+          ) : (
+            <>
+              <AppPageHeader action={headerAction} />
+              <View className="gap-2">
+                <ThemedText variant="title">{title}</ThemedText>
+                {subtitle ? <ThemedText variant="body">{subtitle}</ThemedText> : null}
+              </View>
+            </>
+          )}
+        </View>
+      </View>
       <ScrollView
         className="flex-1"
         refreshControl={
@@ -41,33 +77,19 @@ export function AppScreenFrame({
             />
           ) : undefined
         }
+        onScroll={({ nativeEvent }) => {
+          const nextIsScrolled = nativeEvent.contentOffset.y > 4;
+          setIsScrolled((current) => (current === nextIsScrolled ? current : nextIsScrolled));
+        }}
+        scrollEventThrottle={16}
         contentContainerStyle={{
           gap: spacing.xl,
           paddingHorizontal: spacing.md,
-          paddingTop: spacing.md,
           paddingBottom: spacing.xl,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {onBack ? (
-          <View className="flex-row items-center gap-3">
-            <IconButton icon="back" label="Go back" onPress={onBack} />
-            <ThemedText className="min-w-0 flex-1" numberOfLines={2} variant="title">
-              {title}
-            </ThemedText>
-            {headerAction}
-          </View>
-        ) : (
-          <>
-            <AppPageHeader action={headerAction} />
-            <View className="gap-2">
-              <ThemedText variant="title">{title}</ThemedText>
-              {subtitle ? <ThemedText variant="body">{subtitle}</ThemedText> : null}
-            </View>
-          </>
-        )}
-        {onBack && subtitle ? <ThemedText variant="body">{subtitle}</ThemedText> : null}
         {children}
       </ScrollView>
     </SafeAreaView>
