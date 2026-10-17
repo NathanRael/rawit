@@ -6,6 +6,7 @@ import { View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { FormActions } from "@/components/FormActions";
 import { TextField } from "@/components/TextField";
 import { ThemedText } from "@/components/ThemedText";
 import { wifiNetworkDetailsHref, wifiNetworksHref } from "@/lib/navigation";
@@ -178,7 +179,7 @@ export function WifiNetworkForm({
           {submitError}
         </ThemedText>
       ) : null}
-      <ViewActions
+      <FormActions
         isSubmitting={isSubmitting}
         onCancel={() => {
           if (onCancel) {
@@ -192,24 +193,5 @@ export function WifiNetworkForm({
         saveTitle={networkId ? "Save changes" : "Create network"}
       />
     </FormContainer>
-  );
-}
-
-function ViewActions({
-  isSubmitting,
-  onCancel,
-  onSave,
-  saveTitle,
-}: {
-  isSubmitting: boolean;
-  onCancel: () => void;
-  onSave: () => void;
-  saveTitle: string;
-}) {
-  return (
-    <>
-      <Button loading={isSubmitting} onPress={onSave} title={saveTitle} />
-      <Button disabled={isSubmitting} onPress={onCancel} title="Cancel" variant="secondary" />
-    </>
   );
 }

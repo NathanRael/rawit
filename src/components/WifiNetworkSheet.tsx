@@ -1,14 +1,5 @@
-import {
-  BottomSheet,
-  BottomSheetScrollView,
-  BottomSheetView,
-} from "@expo/ui/community/bottom-sheet";
-import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { ThemedText } from "@/components/ThemedText";
+import { FormSheet } from "@/components/FormSheet";
 import { WifiNetworkForm } from "@/components/WifiNetworkForm";
-import { colors, spacing } from "@/theme";
 
 const SNAP_POINTS = ["50%", "90%"];
 
@@ -19,43 +10,15 @@ type WifiNetworkSheetProps = {
 };
 
 export function WifiNetworkSheet({ visible, onClose, onCreated }: WifiNetworkSheetProps) {
-  const insets = useSafeAreaInsets();
-
   return (
-    <BottomSheet
-      backgroundStyle={{ backgroundColor: colors.canvas }}
-      enablePanDownToClose
-      handleComponent={null}
-      index={visible ? 0 : -1}
+    <FormSheet
+      description="Drag the handle up to expand, or down to close."
       onClose={onClose}
       snapPoints={SNAP_POINTS}
+      title="Add WiFi network"
+      visible={visible}
     >
-      <BottomSheetView style={{ flex: 1, backgroundColor: colors.canvas }}>
-        <View
-          className="flex-1 gap-4 bg-canvas px-4 pt-3"
-          style={{
-            backgroundColor: colors.canvas,
-            paddingBottom: Math.max(insets.bottom, spacing.md),
-          }}
-        >
-          <View className="items-center py-1">
-            <View className="h-1.5 w-10 rounded-pill bg-neutral" />
-          </View>
-          <View className="gap-1">
-            <ThemedText variant="heading">Add WiFi network</ThemedText>
-            <ThemedText>Drag the handle up to expand, or down to close.</ThemedText>
-          </View>
-          <BottomSheetScrollView
-            nestedScrollEnabled
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: spacing.xs }}
-          >
-            <WifiNetworkForm embedded onCancel={onClose} onCreated={onCreated} />
-          </BottomSheetScrollView>
-        </View>
-      </BottomSheetView>
-    </BottomSheet>
+      <WifiNetworkForm embedded onCancel={onClose} onCreated={onCreated} />
+    </FormSheet>
   );
 }

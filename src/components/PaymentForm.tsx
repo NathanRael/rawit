@@ -3,8 +3,8 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { View } from "react-native";
 
-import { Button } from "@/components/Button";
 import { DateField } from "@/components/DateField";
+import { FormActions } from "@/components/FormActions";
 import { TextField } from "@/components/TextField";
 import { ThemedText } from "@/components/ThemedText";
 import { createPayment, updatePayment } from "@/lib/database/repositories";
@@ -109,19 +109,12 @@ export function PaymentForm({ subscriptionId, payment, onSaved, onCancel }: Paym
         )}
       />
       {submitError ? <ThemedText accessibilityRole="alert">{submitError}</ThemedText> : null}
-      <View className="gap-3">
-        <Button
-          loading={isSubmitting}
-          onPress={() => void onSubmit()}
-          title={payment ? "Save payment" : "Record payment"}
-        />
-        <Button
-          disabled={isSubmitting}
-          onPress={onCancel}
-          title="Cancel"
-          variant="secondary"
-        />
-      </View>
+      <FormActions
+        isSubmitting={isSubmitting}
+        onCancel={onCancel}
+        onSave={() => void onSubmit()}
+        saveTitle={payment ? "Save payment" : "Record payment"}
+      />
     </View>
   );
 }

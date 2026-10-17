@@ -6,6 +6,7 @@ import { View } from "react-native";
 
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { FormActions } from "@/components/FormActions";
 import { TextField } from "@/components/TextField";
 import { ThemedText } from "@/components/ThemedText";
 import {
@@ -199,7 +200,7 @@ export function SubscriberForm({
         )}
       />
       {submitError ? <ThemedText accessibilityRole="alert">{submitError}</ThemedText> : null}
-      <ViewActions
+      <FormActions
         isSubmitting={isSubmitting}
         onCancel={() => {
           if (onCancel) {
@@ -213,24 +214,5 @@ export function SubscriberForm({
         saveTitle={subscriberId ? "Save changes" : "Create subscriber"}
       />
     </FormContainer>
-  );
-}
-
-function ViewActions({
-  isSubmitting,
-  onCancel,
-  onSave,
-  saveTitle,
-}: {
-  isSubmitting: boolean;
-  onCancel: () => void;
-  onSave: () => void;
-  saveTitle: string;
-}) {
-  return (
-    <View className="gap-3">
-      <Button loading={isSubmitting} onPress={onSave} title={saveTitle} />
-      <Button disabled={isSubmitting} onPress={onCancel} title="Cancel" variant="secondary" />
-    </View>
   );
 }

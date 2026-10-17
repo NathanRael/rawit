@@ -8,6 +8,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DateField } from "@/components/DateField";
 import { FilterChip } from "@/components/FilterChip";
+import { FormActions } from "@/components/FormActions";
 import { TextField } from "@/components/TextField";
 import { ThemedText } from "@/components/ThemedText";
 import {
@@ -362,22 +363,15 @@ export function SubscriptionPeriodForm({ periodId, renewFromId }: SubscriptionPe
       />
 
       {submitError ? <ThemedText accessibilityRole="alert">{submitError}</ThemedText> : null}
-      <View className="gap-3">
-        <Button
-          loading={isSubmitting}
-          onPress={() => void onSubmit()}
-          title={periodId ? "Save changes" : "Create period"}
-        />
-        <Button
-          disabled={isSubmitting}
-          onPress={() => {
-            if (router.canGoBack()) router.back();
-            else router.replace(subscriptionsHref);
-          }}
-          title="Cancel"
-          variant="secondary"
-        />
-      </View>
+      <FormActions
+        isSubmitting={isSubmitting}
+        onCancel={() => {
+          if (router.canGoBack()) router.back();
+          else router.replace(subscriptionsHref);
+        }}
+        onSave={() => void onSubmit()}
+        saveTitle={periodId ? "Save changes" : "Create period"}
+      />
     </Card>
   );
 }
