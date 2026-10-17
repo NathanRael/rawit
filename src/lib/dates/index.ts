@@ -127,6 +127,16 @@ export function formatDateLocal(value: LocalDate, locale?: string): string {
   }).format(date);
 }
 
-export function formatCurrency(amount: number, currency = "USD", locale?: string): string {
-  return new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount);
+/**
+ * Formats an amount in Malagasy ariary: dot thousands separator, comma decimals (only when
+ * present), and the "Ar" suffix. Manual formatting avoids depending on locale data in Hermes.
+ */
+export function formatCurrency(amount: number): string {
+  const rounded = Math.round(amount * 100) / 100;
+  const sign = rounded < 0 ? "-" : "";
+  const [integerPart, fractionPart = "00"] = Math.abs(rounded).toFixed(2).split(".");
+  const grouped = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const trimmedFraction = fractionPart.replace(/0+$/, "");
+  const decimals = trimmedFraction ? `,${trimmedFraction}` : "";
+  return `${sign}${grouped}${decimals} Ar`;
 }

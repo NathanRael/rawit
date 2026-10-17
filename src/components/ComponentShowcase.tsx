@@ -86,7 +86,7 @@ export function ComponentShowcase() {
             features={["Basic plan", "Content usage", "Reliable WiFi"]}
             name="Basic plan"
             onPress={() => setSelectedPlan("Basic")}
-            price="$10"
+            price="10.000 Ar"
             selected={selectedPlan === "Basic"}
             style={{ flex: 1 }}
             variant="basic"
@@ -95,7 +95,7 @@ export function ComponentShowcase() {
             features={["Premium features", "5G access", "Priority support"]}
             name="Premium"
             onPress={() => setSelectedPlan("Premium")}
-            price="$25"
+            price="25.000 Ar"
             selected={selectedPlan === "Premium"}
             style={{ flex: 1 }}
             variant="premium"
