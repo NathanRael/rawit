@@ -3,7 +3,9 @@ overrides:
 
 allowBuilds:
   '@tailwindcss/oxide': true
+  unrs-resolver: true
 
 # pnpm 10 still reads this setting; pnpm 11 uses allowBuilds above.
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
+  - unrs-resolver
