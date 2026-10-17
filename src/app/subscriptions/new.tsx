@@ -1,19 +1,20 @@
 import { AppScreenFrame } from "@/components/AppScreenFrame";
-import { SubscriptionPeriodForm } from "@/components/SubscriptionPeriodForm";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { subscriptionsHref } from "@/lib/navigation";
+import { SubscriptionPeriodSheet } from "@/components/SubscriptionPeriodSheet";
+import { subscriptionDetailsHref, subscriptionsHref } from "@/lib/navigation";
 
 export default function NewSubscriptionPeriodScreen() {
   const { renewFrom } = useLocalSearchParams<{ renewFrom?: string | string[] }>();
   const renewFromId = Array.isArray(renewFrom) ? renewFrom[0] : renewFrom;
   const router = useRouter();
+  const close = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace(subscriptionsHref);
+  };
 
   return (
     <AppScreenFrame
-      onBack={() => {
-        if (router.canGoBack()) router.back();
-        else router.replace(subscriptionsHref);
-      }}
+      onBack={close}
       subtitle={
         renewFromId
           ? "Review the copied details and adjust this new period before saving."
@@ -21,7 +22,12 @@ export default function NewSubscriptionPeriodScreen() {
       }
       title={renewFromId ? "Renew subscription" : "New subscription period"}
     >
-      <SubscriptionPeriodForm renewFromId={renewFromId} />
+      <SubscriptionPeriodSheet
+        onClose={close}
+        onSaved={(periodId) => router.replace(subscriptionDetailsHref(periodId))}
+        renewFromId={renewFromId}
+        visible
+      />
     </AppScreenFrame>
   );
 }

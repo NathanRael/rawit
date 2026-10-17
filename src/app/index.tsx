@@ -8,11 +8,12 @@ import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { IconButton } from "@/components/IconButton";
 import { PeriodListItem } from "@/components/PeriodListItem";
+import { SubscriptionPeriodSheet } from "@/components/SubscriptionPeriodSheet";
 import { ThemedText } from "@/components/ThemedText";
 import { listSubscriptionPeriods } from "@/lib/database/repositories";
 import { formatCurrency } from "@/lib/dates";
 import { summarizeOverview } from "@/lib/overview";
-import { newSubscriptionHref, settingsHref, subscriptionDetailsHref, subscriptionsHref } from "@/lib/navigation";
+import { settingsHref, subscriptionDetailsHref, subscriptionsHref } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
 import type { SubscriptionPeriodDetails } from "@/types";
 
@@ -20,6 +21,7 @@ export default function OverviewScreen() {
   const router = useRouter();
   const asOfDate = useLifecycleDate();
   const [periods, setPeriods] = useState<SubscriptionPeriodDetails[]>([]);
+  const [isPeriodSheetVisible, setIsPeriodSheetVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
@@ -70,7 +72,7 @@ export default function OverviewScreen() {
     >
       <Button
         accessibilityHint="Create a subscription period for a subscriber and WiFi network"
-        onPress={() => router.push(newSubscriptionHref)}
+        onPress={() => setIsPeriodSheetVisible(true)}
         title="Add subscription"
       />
 
@@ -138,7 +140,7 @@ export default function OverviewScreen() {
                 <EmptyState
                   action={{
                     label: "Add a subscription",
-                    onPress: () => router.push(newSubscriptionHref),
+                    onPress: () => setIsPeriodSheetVisible(true),
                     accessibilityHint: "Create a subscription period",
                   }}
                   description="Add a period to track subscriber payments and upcoming expirations."
@@ -166,6 +168,14 @@ export default function OverviewScreen() {
           </View>
         </>
       )}
+      <SubscriptionPeriodSheet
+        onClose={() => setIsPeriodSheetVisible(false)}
+        onSaved={(periodId) => {
+          setIsPeriodSheetVisible(false);
+          router.push(subscriptionDetailsHref(periodId));
+        }}
+        visible={isPeriodSheetVisible}
+      />
     </AppScreenFrame>
   );
 }

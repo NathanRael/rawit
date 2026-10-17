@@ -100,7 +100,7 @@ export default function WifiNetworksScreen() {
       )}
       <WifiNetworkSheet
         onClose={() => setIsAddSheetVisible(false)}
-        onCreated={() => {
+        onSaved={() => {
           setIsAddSheetVisible(false);
           void loadNetworks();
         }}

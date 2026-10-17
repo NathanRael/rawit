@@ -1,6 +1,6 @@
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, View } from "react-native";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 
 import { AppScreenFrame } from "@/components/AppScreenFrame";
 import { Button } from "@/components/Button";
@@ -8,6 +8,7 @@ import { Card } from "@/components/Card";
 import { DetailDivider, DetailRow } from "@/components/DetailRow";
 import { OverflowMenu, type OverflowMenuItem } from "@/components/OverflowMenu";
 import { PaymentSheet } from "@/components/PaymentSheet";
+import { SubscriptionPeriodSheet } from "@/components/SubscriptionPeriodSheet";
 import { SubscriptionStatusBadges } from "@/components/SubscriptionStatusBadges";
 import { ThemedText } from "@/components/ThemedText";
 import {
@@ -19,8 +20,7 @@ import {
 } from "@/lib/database/repositories";
 import { formatCurrency, formatDateLocal, getRemainingPaymentAmount } from "@/lib/dates";
 import {
-  renewSubscriptionHref,
-  subscriptionEditHref,
+  subscriptionDetailsHref,
   subscriptionsHref,
 } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
@@ -37,6 +37,7 @@ export default function SubscriptionPeriodDetailsScreen() {
   const [isWorking, setIsWorking] = useState(false);
   const [isPaymentSheetVisible, setIsPaymentSheetVisible] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [periodSheetMode, setPeriodSheetMode] = useState<"edit" | "renew" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const goBack = () => {
@@ -188,31 +189,31 @@ export default function SubscriptionPeriodDetailsScreen() {
 
   const menuItems: OverflowMenuItem[] = period
     ? [
-        {
-          key: "edit",
-          label: "Edit period",
-          onPress: () => router.push(subscriptionEditHref(period.id)),
-          disabled: isWorking,
-        },
-        ...(period.lifecycleStatus !== "cancelled"
-          ? [
-              {
-                key: "cancel",
-                label: "Cancel period",
-                onPress: requestCancel,
-                destructive: true,
-                disabled: isWorking,
-              },
-            ]
-          : []),
-        {
-          key: "delete",
-          label: "Delete period",
-          onPress: requestDelete,
-          destructive: true,
-          disabled: isWorking || period.paymentCount > 0,
-        },
-      ]
+      {
+        key: "edit",
+        label: "Edit period",
+        onPress: () => setPeriodSheetMode("edit"),
+        disabled: isWorking,
+      },
+      ...(period.lifecycleStatus !== "cancelled"
+        ? [
+          {
+            key: "cancel",
+            label: "Cancel period",
+            onPress: requestCancel,
+            destructive: true,
+            disabled: isWorking,
+          },
+        ]
+        : []),
+      {
+        key: "delete",
+        label: "Delete period",
+        onPress: requestDelete,
+        destructive: true,
+        disabled: isWorking || period.paymentCount > 0,
+      },
+    ]
     : [];
 
   return (
@@ -343,7 +344,7 @@ export default function SubscriptionPeriodDetailsScreen() {
 
           <Button
             disabled={isWorking}
-            onPress={() => router.push(renewSubscriptionHref(period.id))}
+            onPress={() => setPeriodSheetMode("renew")}
             title="Renew period"
             accessibilityHint="Create a separate new period prefilled from this one"
           />
@@ -357,6 +358,18 @@ export default function SubscriptionPeriodDetailsScreen() {
             payment={editingPayment ?? undefined}
             subscriptionId={period.id}
             visible={isPaymentSheetVisible}
+          />
+          <SubscriptionPeriodSheet
+            onClose={() => setPeriodSheetMode(null)}
+            onSaved={(savedPeriodId) => {
+              const mode = periodSheetMode;
+              setPeriodSheetMode(null);
+              if (mode === "edit") void loadPeriod();
+              else router.push(subscriptionDetailsHref(savedPeriodId));
+            }}
+            periodId={periodSheetMode === "edit" ? period.id : undefined}
+            renewFromId={periodSheetMode === "renew" ? period.id : undefined}
+            visible={periodSheetMode !== null}
           />
         </View>
       ) : null}

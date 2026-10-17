@@ -3,19 +3,32 @@ import { WifiNetworkForm } from "@/components/WifiNetworkForm";
 
 type WifiNetworkSheetProps = {
   visible: boolean;
+  networkId?: string;
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: (networkId: string) => void;
 };
 
-export function WifiNetworkSheet({ visible, onClose, onCreated }: WifiNetworkSheetProps) {
+export function WifiNetworkSheet({ visible, networkId, onClose, onSaved }: WifiNetworkSheetProps) {
   return (
     <FormSheet
-      description="Drag the handle up to expand, or down to close."
+      description={
+        networkId
+          ? "Update this network’s saved details."
+          : "Choose a clear name. SSID and notes are optional."
+      }
       onClose={onClose}
-      title="Add WiFi network"
+      title={networkId ? "Edit network" : "Add WiFi network"}
       visible={visible}
     >
-      <WifiNetworkForm embedded onCancel={onClose} onCreated={onCreated} />
+      {visible ? (
+        <WifiNetworkForm
+          key={networkId ?? "new-network"}
+          embedded
+          networkId={networkId}
+          onCancel={onClose}
+          onSaved={onSaved}
+        />
+      ) : null}
     </FormSheet>
   );
 }

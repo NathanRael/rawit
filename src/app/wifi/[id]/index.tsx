@@ -8,6 +8,7 @@ import { Card } from "@/components/Card";
 import { DetailDivider, DetailRow } from "@/components/DetailRow";
 import { OverflowMenu, type OverflowMenuItem } from "@/components/OverflowMenu";
 import { ThemedText } from "@/components/ThemedText";
+import { WifiNetworkSheet } from "@/components/WifiNetworkSheet";
 import {
   deleteWifiNetwork,
   getWifiNetworkById,
@@ -23,6 +24,7 @@ export default function WifiNetworkDetailsScreen() {
   const [network, setNetwork] = useState<WifiNetwork | null>(null);
   const [subscriptionCount, setSubscriptionCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditSheetVisible, setIsEditSheetVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const goBack = () => {
@@ -101,7 +103,7 @@ export default function WifiNetworkDetailsScreen() {
         {
           key: "edit",
           label: "Edit network",
-          onPress: () => router.push({ pathname: "/wifi/[id]/edit", params: { id: network.id } }),
+          onPress: () => setIsEditSheetVisible(true),
         },
         {
           key: "delete",
@@ -161,6 +163,15 @@ export default function WifiNetworkDetailsScreen() {
           ) : null}
         </View>
       ) : null}
+      <WifiNetworkSheet
+        networkId={network?.id}
+        onClose={() => setIsEditSheetVisible(false)}
+        onSaved={() => {
+          setIsEditSheetVisible(false);
+          void loadNetwork();
+        }}
+        visible={isEditSheetVisible}
+      />
     </AppScreenFrame>
   );
 }

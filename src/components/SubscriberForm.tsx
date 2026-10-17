@@ -15,21 +15,20 @@ import {
   updateSubscriber,
 } from "@/lib/database/repositories";
 import { subscriberDetailsHref, subscribersHref } from "@/lib/navigation";
-import type { Subscriber } from "@/types";
 import { subscriberSchema, type SubscriberFormValues } from "@/lib/validation/subscriber";
 
 type SubscriberFormProps = {
   subscriberId?: string;
   embedded?: boolean;
   onCancel?: () => void;
-  onCreated?: (subscriber: Subscriber) => void;
+  onSaved?: (subscriberId: string) => void;
 };
 
 export function SubscriberForm({
   subscriberId,
   embedded = false,
   onCancel,
-  onCreated,
+  onSaved,
 }: SubscriberFormProps) {
   const router = useRouter();
   const [isLoadingSubscriber, setIsLoadingSubscriber] = useState(subscriberId !== undefined);
@@ -88,16 +87,14 @@ export function SubscriberForm({
           setLoadError("This subscriber no longer exists.");
           return;
         }
-        router.replace(subscriberDetailsHref(updated.id));
+        if (onSaved) onSaved(updated.id);
+        else router.replace(subscriberDetailsHref(updated.id));
         return;
       }
 
       const created = await createSubscriber(values);
-      if (onCreated) {
-        onCreated(created);
-        return;
-      }
-      router.replace(subscriberDetailsHref(created.id));
+      if (onSaved) onSaved(created.id);
+      else router.replace(subscriberDetailsHref(created.id));
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Could not save this subscriber.");
     }

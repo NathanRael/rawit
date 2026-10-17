@@ -7,6 +7,7 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { DetailDivider, DetailRow } from "@/components/DetailRow";
 import { OverflowMenu, type OverflowMenuItem } from "@/components/OverflowMenu";
+import { SubscriberSheet } from "@/components/SubscriberSheet";
 import { SubscriptionStatusBadges } from "@/components/SubscriptionStatusBadges";
 import { ThemedText } from "@/components/ThemedText";
 import {
@@ -20,7 +21,7 @@ import {
   getLocalDate,
   getRemainingPaymentAmount,
 } from "@/lib/dates";
-import { subscriberEditHref, subscribersHref } from "@/lib/navigation";
+import { subscribersHref } from "@/lib/navigation";
 import type { Subscriber, SubscriberSubscriptionPeriod } from "@/types";
 
 function SubscriptionRecord({ period }: { period: SubscriberSubscriptionPeriod }) {
@@ -58,6 +59,7 @@ export default function SubscriberDetailsScreen() {
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
   const [periods, setPeriods] = useState<SubscriberSubscriptionPeriod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditSheetVisible, setIsEditSheetVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const goBack = () => {
@@ -143,7 +145,7 @@ export default function SubscriberDetailsScreen() {
         {
           key: "edit",
           label: "Edit subscriber",
-          onPress: () => router.push(subscriberEditHref(subscriber.id)),
+          onPress: () => setIsEditSheetVisible(true),
         },
         {
           key: "delete",
@@ -216,6 +218,15 @@ export default function SubscriberDetailsScreen() {
           ) : null}
         </View>
       ) : null}
+      <SubscriberSheet
+        onClose={() => setIsEditSheetVisible(false)}
+        onSaved={() => {
+          setIsEditSheetVisible(false);
+          void loadSubscriber();
+        }}
+        subscriberId={subscriber?.id}
+        visible={isEditSheetVisible}
+      />
     </AppScreenFrame>
   );
 }

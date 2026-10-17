@@ -34,6 +34,9 @@ import type { DurationUnit, NewSubscriptionPeriod, Subscriber, WifiNetwork } fro
 type SubscriptionPeriodFormProps = {
   periodId?: string;
   renewFromId?: string;
+  embedded?: boolean;
+  onCancel?: () => void;
+  onSaved?: (periodId: string) => void | Promise<void>;
 };
 
 const durationOptions: { label: string; value: DurationUnit }[] = [
@@ -42,7 +45,13 @@ const durationOptions: { label: string; value: DurationUnit }[] = [
   { label: "Months", value: "month" },
 ];
 
-export function SubscriptionPeriodForm({ periodId, renewFromId }: SubscriptionPeriodFormProps) {
+export function SubscriptionPeriodForm({
+  periodId,
+  renewFromId,
+  embedded = false,
+  onCancel,
+  onSaved,
+}: SubscriptionPeriodFormProps) {
   const router = useRouter();
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [networks, setNetworks] = useState<WifiNetwork[]>([]);
@@ -163,12 +172,14 @@ export function SubscriptionPeriodForm({ periodId, renewFromId }: SubscriptionPe
           setSubmitError("This subscription period no longer exists.");
           return;
         }
-        router.replace(subscriptionDetailsHref(updated.id));
+        if (onSaved) await onSaved(updated.id);
+        else router.replace(subscriptionDetailsHref(updated.id));
         return;
       }
 
       const created = await createSubscriptionPeriod(input);
-      router.replace(subscriptionDetailsHref(created.id));
+      if (onSaved) await onSaved(created.id);
+      else router.replace(subscriptionDetailsHref(created.id));
     } catch (cause) {
       setSubmitError(cause instanceof Error ? cause.message : "Could not save this subscription period.");
     }
@@ -215,10 +226,10 @@ export function SubscriptionPeriodForm({ periodId, renewFromId }: SubscriptionPe
           <Button onPress={() => router.push(wifiNetworksHref)} title="Go to WiFi networks" variant="secondary" />
         ) : null}
         <Button
-          onPress={() => {
+          onPress={onCancel ?? (() => {
             if (router.canGoBack()) router.back();
             else router.replace(subscriptionsHref);
-          }}
+          })}
           title="Cancel"
           variant="secondary"
         />
@@ -226,8 +237,15 @@ export function SubscriptionPeriodForm({ periodId, renewFromId }: SubscriptionPe
     );
   }
 
+  const FormContainer = embedded ? View : Card;
+  const cancelForm = () => {
+    if (onCancel) onCancel();
+    else if (router.canGoBack()) router.back();
+    else router.replace(subscriptionsHref);
+  };
+
   return (
-    <Card className="gap-5">
+    <FormContainer className="gap-5">
       <Controller
         control={control}
         name="subscriberId"
@@ -365,13 +383,10 @@ export function SubscriptionPeriodForm({ periodId, renewFromId }: SubscriptionPe
       {submitError ? <ThemedText accessibilityRole="alert">{submitError}</ThemedText> : null}
       <FormActions
         isSubmitting={isSubmitting}
-        onCancel={() => {
-          if (router.canGoBack()) router.back();
-          else router.replace(subscriptionsHref);
-        }}
+        onCancel={cancelForm}
         onSave={() => void onSubmit()}
         saveTitle={periodId ? "Save changes" : "Create period"}
       />
-    </Card>
+    </FormContainer>
   );
 }

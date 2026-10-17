@@ -8,9 +8,10 @@ import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChip } from "@/components/FilterChip";
 import { PeriodListItem } from "@/components/PeriodListItem";
+import { SubscriptionPeriodSheet } from "@/components/SubscriptionPeriodSheet";
 import { ThemedText } from "@/components/ThemedText";
 import { listSubscriptionPeriods } from "@/lib/database/repositories";
-import { newSubscriptionHref, subscriptionDetailsHref } from "@/lib/navigation";
+import { subscriptionDetailsHref } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
 import type { SubscriptionPeriodDetails } from "@/types";
 
@@ -29,6 +30,7 @@ export default function SubscriptionPeriodsScreen() {
   const asOfDate = useLifecycleDate();
   const [periods, setPeriods] = useState<SubscriptionPeriodDetails[]>([]);
   const [filter, setFilter] = useState<PeriodFilter>("all");
+  const [isAddSheetVisible, setIsAddSheetVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
@@ -73,7 +75,7 @@ export default function SubscriptionPeriodsScreen() {
       title="Subscription periods"
     >
       <Button
-        onPress={() => router.push(newSubscriptionHref)}
+        onPress={() => setIsAddSheetVisible(true)}
         title="Add a period"
         accessibilityHint="Create a subscription period for a subscriber and WiFi network"
       />
@@ -109,7 +111,7 @@ export default function SubscriptionPeriodsScreen() {
             filter === "all"
               ? {
                   label: "Add a period",
-                  onPress: () => router.push(newSubscriptionHref),
+                  onPress: () => setIsAddSheetVisible(true),
                   accessibilityHint: "Create a subscription period",
                 }
               : { label: "Show all periods", onPress: () => setFilter("all") }
@@ -133,6 +135,14 @@ export default function SubscriptionPeriodsScreen() {
           ))}
         </View>
       )}
+      <SubscriptionPeriodSheet
+        onClose={() => setIsAddSheetVisible(false)}
+        onSaved={(periodId) => {
+          setIsAddSheetVisible(false);
+          router.push(subscriptionDetailsHref(periodId));
+        }}
+        visible={isAddSheetVisible}
+      />
     </AppScreenFrame>
   );
 }

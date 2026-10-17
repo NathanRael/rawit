@@ -21,14 +21,14 @@ type WifiNetworkFormProps = {
   networkId?: string;
   embedded?: boolean;
   onCancel?: () => void;
-  onCreated?: () => void;
+  onSaved?: (networkId: string) => void;
 };
 
 export function WifiNetworkForm({
   networkId,
   embedded = false,
   onCancel,
-  onCreated,
+  onSaved,
 }: WifiNetworkFormProps) {
   const router = useRouter();
   const [isLoadingNetwork, setIsLoadingNetwork] = useState(networkId !== undefined);
@@ -83,16 +83,14 @@ export function WifiNetworkForm({
           setLoadError("This WiFi network no longer exists.");
           return;
         }
-        router.replace(wifiNetworkDetailsHref(updated.id));
+        if (onSaved) onSaved(updated.id);
+        else router.replace(wifiNetworkDetailsHref(updated.id));
         return;
       }
 
       const created = await createWifiNetwork(values);
-      if (onCreated) {
-        onCreated();
-        return;
-      }
-      router.replace(wifiNetworkDetailsHref(created.id));
+      if (onSaved) onSaved(created.id);
+      else router.replace(wifiNetworkDetailsHref(created.id));
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Could not save this WiFi network.");
     }

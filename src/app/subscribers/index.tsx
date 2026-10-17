@@ -142,7 +142,7 @@ export default function SubscribersScreen() {
       )}
       <SubscriberSheet
         onClose={() => setIsAddSheetVisible(false)}
-        onCreated={() => {
+        onSaved={() => {
           setIsAddSheetVisible(false);
           void loadSubscribers();
         }}
