@@ -28,15 +28,15 @@ Commit only when the user explicitly asks. When asked to commit:
 
 ## Product and platform
 
-RAWIT is a personal, offline-first WiFi subscription manager. It tracks WiFi networks, subscribers, subscription periods, payments, expiration dates, reminders, and backups. It is intended for an installed Expo build and does not require store publication.
+RAWIT is a personal WiFi subscription manager backed by Supabase accounts and cross-device sync. It tracks WiFi networks, subscribers, subscription periods, payments, expiration dates, reminders, and backups. It supports installed mobile builds and a phone-sized web view; desktop web and store publication are out of scope.
 
-Do not add a backend, cloud sync, authentication, remote push service, router control, or connected-device discovery. Use local notifications only. Verify platform behavior against the installed Expo SDK and target build; Expo Go behavior is not proof of installed-build behavior.
+Supabase Auth and a per-user cloud snapshot provide the requested login and cross-device sync. Do not add another backend, remote push service, router control, or connected-device discovery. Use local notifications only. Verify platform behavior against the installed Expo SDK and target build; Expo Go behavior is not proof of installed-build behavior.
 
 ## Stack and repository conventions
 
 - Expo SDK 57, React Native, TypeScript, and Expo Router.
 - NativeWind 5 RC with Tailwind CSS 4. Check the installed version and follow its matching syntax before styling or changing setup. Do not upgrade or reconfigure it without approval.
-- SQLite (`expo-sqlite`) is the durable source of truth for business records.
+- SQLite (`expo-sqlite`) is the durable local copy for each signed-in account. A Supabase snapshot keyed by Auth user ID synchronizes it across devices; registration and sign-in require a connection.
 - Zustand is for small shared UI state; do not mirror the database in it.
 - AsyncStorage is for small preferences only.
 - React Hook Form and Zod are available for forms and validation when useful.
@@ -57,7 +57,9 @@ Follow the structure already present before creating folders or moving files. Ro
 
 ### Persistence and data safety
 
-- Persist networks, subscribers, subscriptions, and payments in SQLite; the app must work offline and retain records across restarts.
+- Persist networks, subscribers, subscriptions, and payments in account-specific SQLite databases; retain cached records and local changes across restarts and temporary disconnections after sign-in.
+- Never store passwords in SQLite or expose a Supabase service-role key in app code. Authenticate through Supabase Auth and enforce per-user cloud access with RLS.
+- Preserve local edits when cloud sync fails. Compare revisions before replacing cloud or device data and require an explicit conflict choice when both changed.
 - Keep SQL in the data-access layer, use parameterized queries, handle initialization and query failures, and use transactions for related writes.
 - Preserve relationships and history. Confirm destructive actions, especially deleting records with linked history.
 - For backup/restore, export a portable file, validate imports before modifying data, confirm replacement, and use a transaction. Report failures accurately; never claim a backup succeeded unless it did.

@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomNavbar, type NavbarItem } from "@/components/BottomNavbar";
-import { subscribersHref, subscriptionsHref, wifiNetworksHref } from "@/lib/navigation";
+import { overviewHref, subscribersHref, subscriptionsHref, wifiNetworksHref } from "@/lib/navigation";
 import { spacing } from "@/theme";
 
 type NavigationItem = NavbarItem & {
@@ -16,7 +16,7 @@ type AppNavigationBarProps = {
 };
 
 const navigationItems: NavigationItem[] = [
-  { key: "home", label: "Home", icon: "home", href: "/", pathname: "/" },
+  { key: "home", label: "Home", icon: "home", href: overviewHref, pathname: "/" },
   { key: "periods", label: "Periods", icon: "plans", href: subscriptionsHref, pathname: "/subscriptions" },
   { key: "wifi", label: "WiFi", icon: "wifi", href: wifiNetworksHref, pathname: "/wifi" },
   { key: "people", label: "People", icon: "people", href: subscribersHref, pathname: "/subscribers" },

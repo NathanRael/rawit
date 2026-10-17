@@ -22,6 +22,7 @@ import {
   getRemainingPaymentAmount,
 } from "@/lib/dates";
 import { subscribersHref } from "@/lib/navigation";
+import { useSyncStore } from "@/store/sync";
 import type { Subscriber, SubscriberSubscriptionPeriod } from "@/types";
 
 function SubscriptionRecord({ period }: { period: SubscriberSubscriptionPeriod }) {
@@ -56,6 +57,7 @@ export default function SubscriberDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const subscriberId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
+  const dataVersion = useSyncStore((state) => state.dataVersion);
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
   const [periods, setPeriods] = useState<SubscriberSubscriptionPeriod[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,6 +71,7 @@ export default function SubscriberDetailsScreen() {
   };
 
   const loadSubscriber = useCallback(async () => {
+    if (dataVersion !== useSyncStore.getState().dataVersion) return;
     if (!subscriberId) {
       setError("A subscriber ID is required to view this subscriber.");
       setIsLoading(false);
@@ -89,7 +92,7 @@ export default function SubscriberDetailsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [subscriberId]);
+  }, [dataVersion, subscriberId]);
 
   useFocusEffect(
     useCallback(() => {

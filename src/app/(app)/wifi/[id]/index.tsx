@@ -15,12 +15,14 @@ import {
   getWifiNetworkSubscriptionCount,
 } from "@/lib/database/repositories";
 import { wifiNetworksHref } from "@/lib/navigation";
+import { useSyncStore } from "@/store/sync";
 import type { WifiNetwork } from "@/types";
 
 export default function WifiNetworkDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const networkId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
+  const dataVersion = useSyncStore((state) => state.dataVersion);
   const [network, setNetwork] = useState<WifiNetwork | null>(null);
   const [subscriptionCount, setSubscriptionCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,6 +35,7 @@ export default function WifiNetworkDetailsScreen() {
   };
 
   const loadNetwork = useCallback(async () => {
+    if (dataVersion !== useSyncStore.getState().dataVersion) return;
     if (!networkId) {
       setError("A network ID is required to view this WiFi network.");
       setIsLoading(false);
@@ -53,7 +56,7 @@ export default function WifiNetworkDetailsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [networkId]);
+  }, [dataVersion, networkId]);
 
   useFocusEffect(
     useCallback(() => {

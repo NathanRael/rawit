@@ -3,6 +3,7 @@ import type { Href } from "expo-router";
 // Expo's generated route types currently retain the literal `index` segment,
 // while the actual index routes resolve at their parent paths.
 export const wifiNetworksHref = "/wifi" as Href;
+export const overviewHref = "/" as Href;
 export const subscribersHref = "/subscribers" as Href;
 export const subscriptionsHref = "/subscriptions" as Href;
 

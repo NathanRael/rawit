@@ -24,6 +24,11 @@ import {
   saveReminderPreferences,
 } from "@/lib/notifications";
 import type { ReminderPreferences } from "@/types";
+import { overviewHref } from "@/lib/navigation";
+import { requireSupabase } from "@/lib/cloud/client";
+import { refreshAccount, suspendAccountReminders } from "@/lib/cloud/sync";
+import { useAuthStore } from "@/store/auth";
+import { useSyncStore } from "@/store/sync";
 
 const PRESET_INTERVALS = [
   { label: "3 days before", value: 3 },
@@ -42,6 +47,12 @@ type BackupPreview = {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const userId = useAuthStore((state) => state.userId);
+  const accountEmail = useAuthStore((state) => state.email);
+  const syncStatus = useSyncStore((state) => state.status);
+  const syncMessage = useSyncStore((state) => state.message);
+  const [accountBusy, setAccountBusy] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<ReminderPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -202,11 +213,38 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleSync = async () => {
+    if (!userId) return;
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      await refreshAccount(userId);
+      await loadBackupPreview();
+    } catch (cause) {
+      setAccountError(cause instanceof Error ? cause.message : "Could not sync records.");
+    } finally {
+      setAccountBusy(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setAccountBusy(true);
+    setAccountError(null);
+    try {
+      await suspendAccountReminders();
+      const { error: authError } = await requireSupabase().auth.signOut();
+      if (authError) throw authError;
+    } catch (cause) {
+      setAccountError(cause instanceof Error ? cause.message : "Could not log out.");
+      setAccountBusy(false);
+    }
+  };
+
   return (
     <AppScreenFrame
       onBack={() => {
         if (router.canGoBack()) router.back();
-        else router.replace("/");
+        else router.replace(overviewHref);
       }}
       subtitle="Manage reminders, backups, and restore."
       title="Settings"
@@ -224,6 +262,22 @@ export default function SettingsScreen() {
         </Card>
       ) : preferences ? (
         <View className="gap-5">
+          <Card className="gap-4">
+            <View className="gap-1">
+              <ThemedText variant="heading">Account</ThemedText>
+              <ThemedText>{accountEmail ?? "Signed in"}</ThemedText>
+              <ThemedText variant="caption">
+                {syncStatus === "idle" ? "Device and cloud records are up to date." :
+                  syncStatus === "syncing" ? "Syncing records…" :
+                  syncStatus === "conflict" ? "Device and cloud changes need your attention." :
+                  "Changes are saved on this device and will sync when connected."}
+              </ThemedText>
+              {syncMessage ? <ThemedText accessibilityRole="alert" variant="caption">{syncMessage}</ThemedText> : null}
+              {accountError ? <ThemedText accessibilityRole="alert" variant="caption">{accountError}</ThemedText> : null}
+            </View>
+            <Button disabled={accountBusy} onPress={() => void handleSync()} title="Sync now" variant="secondary" />
+            <Button disabled={accountBusy} onPress={() => void handleLogout()} title="Log out" variant="secondary" />
+          </Card>
           <Card className="gap-4">
             <View className="flex-row items-center justify-between gap-3">
               <View className="flex-1 gap-1">

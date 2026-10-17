@@ -36,16 +36,13 @@ export async function createWifiNetwork(input: NewWifiNetwork): Promise<WifiNetw
   const name = validateNetwork(input);
   const id = createRecordId("wifi");
   const createdAt = nowIso();
-  try {
-    const database = await getDatabase();
+  return withDatabaseTransaction("Create WiFi network", async (database) => {
     await database.runAsync(
       "INSERT INTO wifi_networks (id, name, ssid, notes, created_at) VALUES (?, ?, ?, ?, ?)",
       [id, name, optionalText(input.ssid), optionalText(input.notes), createdAt],
     );
     return { id, name, ssid: optionalText(input.ssid), notes: optionalText(input.notes), createdAt };
-  } catch (error) {
-    throw databaseError("Create WiFi network", error);
-  }
+  });
 }
 
 export async function updateWifiNetwork(

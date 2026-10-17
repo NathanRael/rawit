@@ -1,6 +1,18 @@
 import type { TextStyle } from "react-native";
 
 export const type = {
+  authDisplay: {
+    fontSize: 48,
+    lineHeight: 50,
+    fontWeight: "900",
+    letterSpacing: -2,
+  },
+  authDisplayCompact: {
+    fontSize: 40,
+    lineHeight: 43,
+    fontWeight: "900",
+    letterSpacing: -1.6,
+  },
   display: {
     fontSize: 32,
     lineHeight: 36,

@@ -24,6 +24,7 @@ import {
   subscriptionsHref,
 } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
+import { useSyncStore } from "@/store/sync";
 import type { Payment, SubscriptionPeriodDetails } from "@/types";
 
 export default function SubscriptionPeriodDetailsScreen() {
@@ -31,6 +32,7 @@ export default function SubscriptionPeriodDetailsScreen() {
   const periodId = Array.isArray(id) ? id[0] : id;
   const router = useRouter();
   const asOfDate = useLifecycleDate();
+  const dataVersion = useSyncStore((state) => state.dataVersion);
   const [period, setPeriod] = useState<SubscriptionPeriodDetails | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,6 +48,7 @@ export default function SubscriptionPeriodDetailsScreen() {
   };
 
   const loadPeriod = useCallback(async () => {
+    if (dataVersion !== useSyncStore.getState().dataVersion) return;
     if (!periodId) {
       setError("A subscription period ID is required to view this period.");
       setIsLoading(false);
@@ -66,7 +69,7 @@ export default function SubscriptionPeriodDetailsScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [asOfDate, periodId]);
+  }, [asOfDate, dataVersion, periodId]);
 
   useFocusEffect(
     useCallback(() => {

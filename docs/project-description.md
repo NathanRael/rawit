@@ -8,10 +8,11 @@ RAWIT is a personal tool for managing people who pay to use one or more WiFi net
 2. Who owes money, and how much?
 3. Which subscription is approaching expiration or has expired?
 
-The app is built with Expo and React Native, runs as an installed build, and stores data locally so core use does not require internet access. Store publication is out of scope.
+The app is built with Expo and React Native for installed mobile builds and a phone-sized web view. Desktop web is outside the supported layout. Supabase is required for email/password accounts and cross-device synchronization. Signed-in users keep an account-specific SQLite copy so previously loaded records and local changes can remain available during temporary disconnections. Store publication is out of scope.
 
 ## Core records and workflows
 
+- **Accounts:** register and log in with email and password, access only that account's records, and log out. Email confirmation is disabled for this personal app.
 - **WiFi networks:** create, view, edit, and safely remove named networks.
 - **Subscribers:** record subscriber details and assign them to network subscriptions.
 - **Subscription periods:** record the subscriber, network, start date, duration, amount, and notes. Calculate the expiration date consistently from the duration.
@@ -31,13 +32,14 @@ Subscription lifecycle is date-based (`active`, `expiring soon`, `expired`) or `
 
 Use the device's local date for user-facing dates and reminders. Handle month boundaries, leap years, and the expiration day consistently. Refresh derived status when the app opens or returns to the foreground; the app is not assumed to run continuously in the background.
 
-### Local data is the source of truth
+### Account data and synchronization
 
-SQLite stores networks, subscribers, subscription periods, and payments. Zustand is for small shared UI state; AsyncStorage is for small preferences. Notifications only remind the owner and do not determine subscription status.
+SQLite stores networks, subscribers, subscription periods, and payments separately for each signed-in account. Supabase Auth stores credentials and supplies the immutable user ID used to scope a cloud snapshot of those records. Registration and sign-in require a connection. Local changes are saved first and synchronized when connected; unsynced changes remain on that device. Cloud revisions prevent one device from silently overwriting another device's newer changes; the user chooses which copy to keep when both have changed. Zustand is for small shared UI state; AsyncStorage is for small preferences and sync metadata. Notifications only remind the owner and do not determine subscription status.
+
+Existing records in the original local database are imported into the first account used on that device. Account data is never keyed by a password, and the app never stores a password in SQLite.
 
 ## Out of scope
 
-- Backend services, cloud synchronization, accounts, or authentication.
 - Remote push notifications.
 - Automatic discovery of connected devices or router control.
 - App Store or Google Play publication requirements.

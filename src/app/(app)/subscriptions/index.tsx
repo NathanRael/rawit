@@ -19,6 +19,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { listSubscriptionPeriods } from "@/lib/database/repositories";
 import { subscriptionDetailsHref } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
+import { useSyncStore } from "@/store/sync";
 import type { SubscriptionPeriodDetails } from "@/types";
 
 type PeriodFilter = "all" | "active" | "expiring_soon" | "expired" | "unpaid";
@@ -34,6 +35,7 @@ const filters: { label: string; value: PeriodFilter }[] = [
 export default function SubscriptionPeriodsScreen() {
   const router = useRouter();
   const asOfDate = useLifecycleDate();
+  const dataVersion = useSyncStore((state) => state.dataVersion);
   const [periods, setPeriods] = useState<SubscriptionPeriodDetails[]>([]);
   const [filter, setFilter] = useState<PeriodFilter>("all");
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedPeriodFilters>({
@@ -49,6 +51,7 @@ export default function SubscriptionPeriodsScreen() {
   const requestId = useRef(0);
 
   const loadPeriods = useCallback(async () => {
+    if (dataVersion !== useSyncStore.getState().dataVersion) return;
     const currentRequest = ++requestId.current;
     setIsLoading(true);
     setError(null);
@@ -64,7 +67,7 @@ export default function SubscriptionPeriodsScreen() {
     } finally {
       if (currentRequest === requestId.current) setIsLoading(false);
     }
-  }, [asOfDate]);
+  }, [asOfDate, dataVersion]);
 
   useFocusEffect(
     useCallback(() => {

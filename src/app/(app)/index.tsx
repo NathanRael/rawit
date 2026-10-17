@@ -15,11 +15,13 @@ import { formatCurrency } from "@/lib/dates";
 import { summarizeOverview } from "@/lib/overview";
 import { settingsHref, subscriptionDetailsHref, subscriptionsHref } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
+import { useSyncStore } from "@/store/sync";
 import type { SubscriptionPeriodDetails } from "@/types";
 
 export default function OverviewScreen() {
   const router = useRouter();
   const asOfDate = useLifecycleDate();
+  const dataVersion = useSyncStore((state) => state.dataVersion);
   const [periods, setPeriods] = useState<SubscriptionPeriodDetails[]>([]);
   const [isPeriodSheetVisible, setIsPeriodSheetVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,7 @@ export default function OverviewScreen() {
   const requestId = useRef(0);
 
   const loadOverview = useCallback(async () => {
+    if (dataVersion !== useSyncStore.getState().dataVersion) return;
     const currentRequest = ++requestId.current;
     setIsLoading(true);
     setError(null);
@@ -40,7 +43,7 @@ export default function OverviewScreen() {
     } finally {
       if (currentRequest === requestId.current) setIsLoading(false);
     }
-  }, [asOfDate]);
+  }, [asOfDate, dataVersion]);
 
   useFocusEffect(
     useCallback(() => {

@@ -195,22 +195,19 @@ export async function updateSubscriptionPeriod(
 }
 
 export async function cancelSubscriptionPeriod(id: string): Promise<boolean> {
-  try {
-    const database = await getDatabase();
+  const cancelled = await withDatabaseTransaction("Cancel subscription period", async (database) => {
     const result = await database.runAsync(
       "UPDATE subscription_periods SET cancelled_at = ? WHERE id = ? AND cancelled_at IS NULL",
       [nowIso(), id],
     );
-    const cancelled = result.changes > 0;
-    if (cancelled) {
-      void cancelRemindersForSubscription(id).catch(() => {
-        // Reminder cancellation failures must not block core subscription operations.
-      });
-    }
-    return cancelled;
-  } catch (error) {
-    throw databaseError("Cancel subscription period", error);
+    return result.changes > 0;
+  });
+  if (cancelled) {
+    void cancelRemindersForSubscription(id).catch(() => {
+      // Reminder cancellation failures must not block core subscription operations.
+    });
   }
+  return cancelled;
 }
 
 export async function getSubscriptionPeriodById(

@@ -36,16 +36,13 @@ export async function createSubscriber(input: NewSubscriber): Promise<Subscriber
   const phone = optionalText(input.phone);
   const email = optionalText(input.email);
   const notes = optionalText(input.notes);
-  try {
-    const database = await getDatabase();
+  return withDatabaseTransaction("Create subscriber", async (database) => {
     await database.runAsync(
       "INSERT INTO subscribers (id, name, phone, email, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)",
       [id, name, phone, email, notes, createdAt],
     );
     return { id, name, phone, email, notes, createdAt };
-  } catch (error) {
-    throw databaseError("Create subscriber", error);
-  }
+  });
 }
 
 export async function updateSubscriber(

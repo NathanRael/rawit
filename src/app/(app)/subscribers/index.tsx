@@ -12,6 +12,7 @@ import { TextField } from "@/components/TextField";
 import { ThemedText } from "@/components/ThemedText";
 import { listSubscribers } from "@/lib/database/repositories";
 import { subscriberDetailsHref } from "@/lib/navigation";
+import { useSyncStore } from "@/store/sync";
 import type { Subscriber } from "@/types";
 
 /** Up to two initials from the name, used in the leading tile. */
@@ -26,6 +27,7 @@ function initialsOf(name: string): string {
 
 export default function SubscribersScreen() {
   const router = useRouter();
+  const dataVersion = useSyncStore((state) => state.dataVersion);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [hasSubscribers, setHasSubscribers] = useState(false);
   const [search, setSearch] = useState("");
@@ -35,6 +37,7 @@ export default function SubscribersScreen() {
   const requestId = useRef(0);
 
   const loadSubscribers = useCallback(async () => {
+    if (dataVersion !== useSyncStore.getState().dataVersion) return;
     const currentRequest = ++requestId.current;
     setIsLoading(true);
     setError(null);
@@ -51,7 +54,7 @@ export default function SubscribersScreen() {
     } finally {
       if (currentRequest === requestId.current) setIsLoading(false);
     }
-  }, [search]);
+  }, [dataVersion, search]);
 
   useFocusEffect(
     useCallback(() => {

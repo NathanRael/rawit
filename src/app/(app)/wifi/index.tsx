@@ -12,16 +12,19 @@ import { ThemedText } from "@/components/ThemedText";
 import { WifiNetworkSheet } from "@/components/WifiNetworkSheet";
 import { listWifiNetworks } from "@/lib/database/repositories";
 import { wifiNetworkDetailsHref } from "@/lib/navigation";
+import { useSyncStore } from "@/store/sync";
 import type { WifiNetwork } from "@/types";
 
 export default function WifiNetworksScreen() {
   const router = useRouter();
+  const dataVersion = useSyncStore((state) => state.dataVersion);
   const [networks, setNetworks] = useState<WifiNetwork[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddSheetVisible, setIsAddSheetVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadNetworks = useCallback(async () => {
+    if (dataVersion !== useSyncStore.getState().dataVersion) return;
     setIsLoading(true);
     setError(null);
     try {
@@ -31,7 +34,7 @@ export default function WifiNetworksScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [dataVersion]);
 
   useFocusEffect(
     useCallback(() => {

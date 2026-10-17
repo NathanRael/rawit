@@ -110,7 +110,10 @@ export async function pickBackupFile(): Promise<BackupValidationResult> {
   }
 }
 
-export async function restoreBackup(data: BackupData): Promise<BackupRestoreResult> {
+export async function restoreBackup(
+  data: BackupData,
+  options: { reconcileReminders?: boolean } = {},
+): Promise<BackupRestoreResult> {
   const importedCounts = {
     wifiNetworks: 0,
     subscribers: 0,
@@ -172,9 +175,11 @@ export async function restoreBackup(data: BackupData): Promise<BackupRestoreResu
       }
     });
 
-    void reconcileAllReminders().catch(() => {
-      // Reminder reconciliation failure must not mark restore as failed.
-    });
+    if (options.reconcileReminders !== false) {
+      void reconcileAllReminders().catch(() => {
+        // Reminder reconciliation failure must not mark restore as failed.
+      });
+    }
 
     return { restored: true, importedCounts };
   } catch (cause) {
