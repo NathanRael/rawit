@@ -44,7 +44,13 @@ export interface SubscriptionPeriod extends SubscriptionPeriodRecord {
   expirationDate: LocalDate;
   lifecycleStatus: SubscriptionLifecycleStatus;
   amountPaid: number;
+  paymentCount: number;
   paymentStatus: PaymentStatus;
+}
+
+export interface SubscriptionPeriodDetails extends SubscriptionPeriod {
+  subscriberName: string;
+  wifiNetworkName: string;
 }
 
 export interface SubscriberSubscriptionPeriod extends SubscriptionPeriod {

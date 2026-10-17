@@ -4,6 +4,7 @@ import type {
   NewSubscriptionPeriod,
   SubscriberSubscriptionPeriod,
   SubscriptionLifecycleStatus,
+  SubscriptionPeriodDetails,
   SubscriptionPeriod,
 } from "@/types";
 import {
@@ -29,11 +30,12 @@ interface SubscriptionPeriodRow {
   notes: string | null;
   created_at: string;
   amount_paid: number;
-}
-
-interface SubscriberSubscriptionPeriodRow extends SubscriptionPeriodRow {
+  payment_count: number;
+  subscriber_name: string;
   wifi_network_name: string;
 }
+
+type SubscriberSubscriptionPeriodRow = SubscriptionPeriodRow;
 
 function parseDurationUnit(value: string): DurationUnit {
   if (value === "day" || value === "week" || value === "month") return value;
@@ -66,7 +68,19 @@ function mapSubscriptionPeriod(row: SubscriptionPeriodRow, asOfDate: LocalDate):
       asOfDate,
     ),
     amountPaid,
+    paymentCount: row.payment_count,
     paymentStatus: getPaymentStatus(row.amount, amountPaid),
+  };
+}
+
+function mapSubscriptionPeriodDetails(
+  row: SubscriptionPeriodRow,
+  asOfDate: LocalDate,
+): SubscriptionPeriodDetails {
+  return {
+    ...mapSubscriptionPeriod(row, asOfDate),
+    subscriberName: row.subscriber_name,
+    wifiNetworkName: row.wifi_network_name,
   };
 }
 
@@ -91,18 +105,12 @@ const SUBSCRIPTION_SELECT = `
   SELECT
     s.id, s.subscriber_id, s.wifi_network_id, s.start_date,
     s.duration_value, s.duration_unit, s.amount, s.cancelled_at,
-    s.notes, s.created_at, COALESCE(SUM(p.amount), 0) AS amount_paid
-  FROM subscription_periods s
-  LEFT JOIN payments p ON p.subscription_id = s.id`;
-
-const SUBSCRIBER_SUBSCRIPTION_SELECT = `
-  SELECT
-    s.id, s.subscriber_id, s.wifi_network_id, s.start_date,
-    s.duration_value, s.duration_unit, s.amount, s.cancelled_at,
     s.notes, s.created_at, COALESCE(SUM(p.amount), 0) AS amount_paid,
+    COUNT(p.id) AS payment_count, sub.name AS subscriber_name,
     n.name AS wifi_network_name
   FROM subscription_periods s
   LEFT JOIN payments p ON p.subscription_id = s.id
+  INNER JOIN subscribers sub ON sub.id = s.subscriber_id
   INNER JOIN wifi_networks n ON n.id = s.wifi_network_id`;
 
 export async function createSubscriptionPeriod(
@@ -184,14 +192,14 @@ export async function cancelSubscriptionPeriod(id: string): Promise<boolean> {
 export async function getSubscriptionPeriodById(
   id: string,
   asOfDate: LocalDate = getLocalDate(),
-): Promise<SubscriptionPeriod | null> {
+): Promise<SubscriptionPeriodDetails | null> {
   try {
     const database = await getDatabase();
     const row = await database.getFirstAsync<SubscriptionPeriodRow>(
       `${SUBSCRIPTION_SELECT} WHERE s.id = ? GROUP BY s.id`,
       [id],
     );
-    return row ? mapSubscriptionPeriod(row, asOfDate) : null;
+    return row ? mapSubscriptionPeriodDetails(row, asOfDate) : null;
   } catch (error) {
     throw databaseError("Read subscription period", error);
   }
@@ -201,7 +209,7 @@ export async function listSubscriptionPeriods(options?: {
   asOfDate?: LocalDate;
   lifecycleStatus?: SubscriptionLifecycleStatus;
   unpaidOnly?: boolean;
-}): Promise<SubscriptionPeriod[]> {
+}): Promise<SubscriptionPeriodDetails[]> {
   const asOfDate = options?.asOfDate ?? getLocalDate();
   try {
     const database = await getDatabase();
@@ -209,7 +217,7 @@ export async function listSubscriptionPeriods(options?: {
       `${SUBSCRIPTION_SELECT} GROUP BY s.id ORDER BY s.start_date DESC, s.created_at DESC`,
     );
     return rows
-      .map((row) => mapSubscriptionPeriod(row, asOfDate))
+      .map((row) => mapSubscriptionPeriodDetails(row, asOfDate))
       .filter((period) =>
         options?.lifecycleStatus ? period.lifecycleStatus === options.lifecycleStatus : true,
       )
@@ -226,7 +234,7 @@ export async function listSubscriberSubscriptionPeriods(
   try {
     const database = await getDatabase();
     const rows = await database.getAllAsync<SubscriberSubscriptionPeriodRow>(
-      `${SUBSCRIBER_SUBSCRIPTION_SELECT}
+      `${SUBSCRIPTION_SELECT}
        WHERE s.subscriber_id = ?
        GROUP BY s.id
        ORDER BY s.start_date DESC, s.created_at DESC`,
@@ -239,4 +247,29 @@ export async function listSubscriberSubscriptionPeriods(
   } catch (error) {
     throw databaseError("List subscriber subscription periods", error);
   }
+}
+
+export type SubscriptionPeriodDeletionResult =
+  | { deleted: true }
+  | { deleted: false; reason: "not_found" }
+  | { deleted: false; reason: "has_payments"; paymentCount: number };
+
+export async function deleteSubscriptionPeriod(
+  id: string,
+): Promise<SubscriptionPeriodDeletionResult> {
+  return withDatabaseTransaction("Delete subscription period", async (database) => {
+    const row = await database.getFirstAsync<{ payment_count: number }>(
+      "SELECT COUNT(*) AS payment_count FROM payments WHERE subscription_id = ?",
+      [id],
+    );
+    if (!row) return { deleted: false, reason: "not_found" };
+    if (row.payment_count > 0) {
+      return { deleted: false, reason: "has_payments", paymentCount: row.payment_count };
+    }
+
+    const result = await database.runAsync("DELETE FROM subscription_periods WHERE id = ?", [id]);
+    return result.changes > 0
+      ? { deleted: true }
+      : { deleted: false, reason: "not_found" };
+  });
 }

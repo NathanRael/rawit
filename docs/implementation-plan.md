@@ -53,13 +53,15 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 
 ## 4. Subscription periods
 
-- [ ] Create a period linking exactly one subscriber and one network, with start date, duration, amount, and optional notes.
-- [ ] Derive its expiration date using the shared date rule; validate required links, positive duration, and non-negative amount.
-- [ ] List and view periods with subscriber, network, dates, amount, lifecycle, and payment status shown separately.
-- [ ] Support editing and cancellation. Confirm deletion and block it when payment history exists.
-- [ ] Provide useful filters for all, active, expiring soon, expired, and unpaid periods; include empty and error states.
+- [x] Create a period linking exactly one subscriber and one network, with start date, duration, amount, and optional notes.
+- [x] Derive its expiration date using the shared date rule; validate required links, positive duration, and non-negative amount.
+- [x] List and view periods with subscriber, network, dates, amount, lifecycle, and payment status shown separately.
+- [x] Support editing and cancellation. Confirm deletion and block it when payment history exists.
+- [x] Provide useful filters for all, active, expiring soon, expired, and unpaid periods; include empty and error states.
 
 **Acceptance:** Period data persists and filters/statuses remain correct after restart and foreground refresh.
+
+**Validation:** Lint, typecheck, date/lifecycle tests, SQLite period join/payment-history guard smoke test, and `pnpm exec expo export --platform all` pass. Installed-build interaction and restart persistence were not manually tested.
 
 ## 5. Payments and renewals
 
@@ -141,3 +143,4 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 | 2026-10-17 | Project setup | Aligned Metro with the NativeWind `withNativewind` export, moved styling build tools to dev dependencies, and enabled Tailwind IntelliSense. Lint, typecheck, and web/iOS/Android exports passed. |
 | 2026-10-17 | WiFi networks | Added network CRUD screens, a draggable Expo UI bottom-sheet add flow, reusable centered empty state, required-name validation, and deletion protection for linked history. Lint, typecheck, and all-platform export passed; native interaction and persistence smoke tests remain unverified. |
 | 2026-10-17 | Subscribers | Added subscriber CRUD, search, current subscription summary, full network/payment-status history, and deletion protection for linked periods. Added subscriber bottom-sheet creation and one persistent bottom navigation across routes. Lint, typecheck, SQLite query smoke test, and all-platform export passed; installed-build behavior remains unverified. |
+| 2026-10-17 | Subscription periods | Added period creation/editing, joined list/detail views, lifecycle/payment filters, cancellation, and payment-history-safe deletion. Lint, typecheck, date tests, SQLite query smoke test, and all-platform export passed; installed-build interaction and restart persistence remain unverified. |

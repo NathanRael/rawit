@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import {
   AlertBox,
@@ -15,6 +16,7 @@ import {
   ThemedText,
 } from "@/components";
 import { hardShadow, roundedCorners, spacing } from "@/theme";
+import { newSubscriptionHref } from "@/lib/navigation";
 
 const filterOptions = ["Annual", "Monthly", "5G", "Fiber"];
 
@@ -23,6 +25,7 @@ function SectionTitle({ children }: { children: string }) {
 }
 
 export default function Index() {
+  const router = useRouter();
   const [selectedFilter, setSelectedFilter] = useState("Annual");
   const [selectedPlan, setSelectedPlan] = useState("Basic");
   const [interactionMessage, setInteractionMessage] = useState("");
@@ -57,7 +60,7 @@ export default function Index() {
             A bold, local-first way to keep every WiFi plan and payment in view.
           </ThemedText>
           <Button
-            onPress={() => showPreviewFeedback("Add subscription")}
+            onPress={() => router.push(newSubscriptionHref)}
             title="Add subscription"
             variant="primary"
           />

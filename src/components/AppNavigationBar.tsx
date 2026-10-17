@@ -3,11 +3,12 @@ import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomNavbar, type NavbarItem } from "@/components/BottomNavbar";
-import { subscribersHref, wifiNetworksHref } from "@/lib/navigation";
+import { subscribersHref, subscriptionsHref, wifiNetworksHref } from "@/lib/navigation";
 import { spacing } from "@/theme";
 
 const navigationItems: NavbarItem[] = [
   { key: "home", label: "Home", icon: "home" },
+  { key: "periods", label: "Periods", icon: "plans" },
   { key: "wifi", label: "WiFi", icon: "wifi" },
   { key: "people", label: "People", icon: "people" },
 ];
@@ -20,6 +21,8 @@ export function AppNavigationBar() {
     ? "wifi"
     : pathname.startsWith("/subscribers")
       ? "people"
+      : pathname.startsWith("/subscriptions")
+        ? "periods"
       : "home";
 
   return (
@@ -33,6 +36,7 @@ export function AppNavigationBar() {
         onChange={(key) => {
           if (key === "wifi") router.replace(wifiNetworksHref);
           else if (key === "people") router.replace(subscribersHref);
+          else if (key === "periods") router.replace(subscriptionsHref);
           else router.replace("/");
         }}
       />
