@@ -86,15 +86,17 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 
 **Validation:** Overview projection tests, date/balance tests, lint, typecheck, and `pnpm exec expo export --platform all` pass. The Home screen reloads on route focus and app foreground. Installed-build SQLite behavior was not manually smoke-tested.
 
-## 7. Local expiration reminders
+## 7. Local expiration reminders — complete
 
-- [ ] Add local reminder preferences, enabled by default, for 3 days before, 1 day before, and expiration day; allow reminders to be disabled and intervals to be changed.
-- [ ] Request notification permission when needed and handle denial without blocking core use.
-- [ ] Schedule only valid future reminders; include enough context to identify subscriber, network, and expiration.
-- [ ] Reconcile reminders after create, edit, renewal, cancellation, deletion, and preference changes; cancel obsolete reminders and avoid duplicates.
-- [ ] Store notification identifiers when needed for reliable cancellation. Keep in-app lifecycle status independent of notification delivery.
+- [x] Add local reminder preferences, enabled by default, for 3 days before, 1 day before, and expiration day; allow reminders to be disabled and intervals to be changed.
+- [x] Request notification permission when needed and handle denial without blocking core use.
+- [x] Schedule only valid future reminders; include enough context to identify subscriber, network, and expiration.
+- [x] Reconcile reminders after create, edit, renewal, cancellation, deletion, and preference changes; cancel obsolete reminders and avoid duplicates.
+- [x] Store notification identifiers when needed for reliable cancellation. Keep in-app lifecycle status independent of notification delivery.
 
 **Acceptance:** Reminder schedules match current periods/preferences; denied, dismissed, or missed notifications do not hide expiring/expired periods. Verify scheduling on an installed build.
+
+**Validation:** Added AsyncStorage-backed preferences, an `expo-notifications` scheduling/cancellation service, per-subscription and global reconciliation, and integration into period create/update/cancel/delete. Added a `/settings` screen with enable/disable and interval toggles. `pnpm lint`, `pnpm typecheck`, and `pnpm exec expo export --platform all` pass. Installed-build notification scheduling and permission-denial behavior remain unverified.
 
 ## 8. Backup and restore
 
@@ -150,3 +152,4 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 | 2026-10-17 | Subscription periods | Added period creation/editing, joined list/detail views, lifecycle/payment filters, cancellation, and payment-history-safe deletion. Lint, typecheck, date tests, SQLite query smoke test, and all-platform export passed; installed-build interaction and restart persistence remain unverified. |
 | 2026-10-17 | Payments and renewals | Added transactional payment CRUD, history and remaining balances across period details/lists/home, and renewal creation as a separate prefilled period. Lint, typecheck, date/balance tests, and all-platform export passed; installed-build interaction and persistence remain unverified. |
 | 2026-10-17 | Overview | Replaced the Home component preview with SQLite-refreshed lifecycle counts, total outstanding balance, and tappable attention items. Overview/date tests, lint, typecheck, and all-platform export passed; installed-build behavior remains unverified. |
+| 2026-10-17 | Local expiration reminders | Added AsyncStorage reminder preferences, `expo-notifications` scheduling/cancellation, per-subscription/global reconciliation, and integration into period create/update/cancel/delete. Added `/settings` reminder toggles. Lint, typecheck, and all-platform export passed; installed-build notification behavior remains unverified. |
