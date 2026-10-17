@@ -1,3 +1,4 @@
+import { BottomSheetTextInput, useBottomSheetInternal } from "@gorhom/bottom-sheet";
 import {
   TextInput,
   View,
@@ -25,10 +26,15 @@ export function TextField({
   onBlur,
   ...inputProps
 }: TextFieldProps) {
+  // Inside a bottom sheet the keyboard must move the sheet, which only BottomSheetTextInput does.
+  // Outside a sheet (full pages) that hook is null and a plain TextInput is used.
+  const bottomSheet = useBottomSheetInternal(true);
+  const InputComponent = bottomSheet ? BottomSheetTextInput : TextInput;
+
   return (
     <View className="gap-2" style={containerStyle}>
       <ThemedText variant="label">{label}</ThemedText>
-      <TextInput
+      <InputComponent
         {...inputProps}
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityHint={

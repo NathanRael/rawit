@@ -1,8 +1,6 @@
 import { FormSheet } from "@/components/FormSheet";
 import { WifiNetworkForm } from "@/components/WifiNetworkForm";
 
-const SNAP_POINTS = ["50%", "90%"];
-
 type WifiNetworkSheetProps = {
   visible: boolean;
   onClose: () => void;
@@ -14,7 +12,6 @@ export function WifiNetworkSheet({ visible, onClose, onCreated }: WifiNetworkShe
     <FormSheet
       description="Drag the handle up to expand, or down to close."
       onClose={onClose}
-      snapPoints={SNAP_POINTS}
       title="Add WiFi network"
       visible={visible}
     >

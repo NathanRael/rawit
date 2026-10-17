@@ -2,8 +2,6 @@ import { FormSheet } from "@/components/FormSheet";
 import { PaymentForm } from "@/components/PaymentForm";
 import type { Payment } from "@/types";
 
-const SNAP_POINTS = ["60%", "90%"];
-
 type PaymentSheetProps = {
   visible: boolean;
   subscriptionId: string;
@@ -24,7 +22,6 @@ export function PaymentSheet({
     <FormSheet
       description="Enter the amount and the date it was paid."
       onClose={onClose}
-      snapPoints={SNAP_POINTS}
       title={payment ? "Edit payment" : "Record payment"}
       visible={visible}
     >

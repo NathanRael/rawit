@@ -2,8 +2,10 @@ import "../global.css";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Text, View } from "react-native";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { Stack, usePathname, useRouter, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { initializeDatabase } from "@/lib/database";
 import { reconcileAllReminders, refreshRemindersOnLifecycleChange } from "@/lib/notifications/reminders";
@@ -110,17 +112,19 @@ export default function RootLayout() {
   }
 
   return (
-    <>
-      <StatusBar style="dark" />
-      <View className="flex-1 bg-canvas">
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            animationTypeForReplace: pendingTabTransition?.direction ?? "pop",
-          }}
-        />
-        <AppNavigationBar onNavigate={navigateToTab} />
-      </View>
-    </>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <StatusBar style="dark" />
+        <View className="flex-1 bg-canvas">
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animationTypeForReplace: pendingTabTransition?.direction,
+            }}
+          />
+          <AppNavigationBar onNavigate={navigateToTab} />
+        </View>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
