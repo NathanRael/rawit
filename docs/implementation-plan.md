@@ -98,15 +98,17 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 
 **Validation:** Added AsyncStorage-backed preferences, an `expo-notifications` scheduling/cancellation service, per-subscription and global reconciliation, and integration into period create/update/cancel/delete. Added a `/settings` screen with enable/disable and interval toggles. `pnpm lint`, `pnpm typecheck`, and `pnpm exec expo export --platform all` pass. Installed-build notification scheduling and permission-denial behavior remain unverified.
 
-## 8. Backup and restore
+## 8. Backup and restore — complete
 
-- [ ] Export all business records and required relationships to a portable, versioned file; report success only after the file is written and offered to the user.
-- [ ] Let the user select a backup and validate its version, shape, and relationships before changing stored data.
-- [ ] Explain that restore replaces current data and require confirmation.
-- [ ] Restore all related records in one transaction; roll back and report failure if any step fails.
-- [ ] Provide clear progress, success, invalid-file, and failure states.
+- [x] Export all business records and required relationships to a portable, versioned file; report success only after the file is written and offered to the user.
+- [x] Let the user select a backup and validate its version, shape, and relationships before changing stored data.
+- [x] Explain that restore replaces current data and require confirmation.
+- [x] Restore all related records in one transaction; roll back and report failure if any step fails.
+- [x] Provide clear progress, success, invalid-file, and failure states.
 
 **Acceptance:** A valid export can restore equivalent data; invalid or failed imports leave existing data intact.
+
+**Validation:** Added a versioned JSON backup schema, export via `expo-sharing`, validation with Zod and relationship checks, confirmation dialog, and transactional restore with reminder reconciliation. Backup/restore UI added to `/settings`. `pnpm lint`, `pnpm typecheck`, and `pnpm exec expo export --platform all` pass. Installed-build export/share and restore behavior remain unverified.
 
 ## 9. Settings, accessibility, and release readiness
 
@@ -153,3 +155,4 @@ This checklist defines the work and acceptance criteria for each feature. Produc
 | 2026-10-17 | Payments and renewals | Added transactional payment CRUD, history and remaining balances across period details/lists/home, and renewal creation as a separate prefilled period. Lint, typecheck, date/balance tests, and all-platform export passed; installed-build interaction and persistence remain unverified. |
 | 2026-10-17 | Overview | Replaced the Home component preview with SQLite-refreshed lifecycle counts, total outstanding balance, and tappable attention items. Overview/date tests, lint, typecheck, and all-platform export passed; installed-build behavior remains unverified. |
 | 2026-10-17 | Local expiration reminders | Added AsyncStorage reminder preferences, `expo-notifications` scheduling/cancellation, per-subscription/global reconciliation, and integration into period create/update/cancel/delete. Added `/settings` reminder toggles. Lint, typecheck, and all-platform export passed; installed-build notification behavior remains unverified. |
+| 2026-10-17 | Backup and restore | Added versioned JSON backup schema, `expo-sharing` export, file-picker import with Zod/relationship validation, confirmation dialog, and transactional restore with reminder reconciliation. Backup/restore UI added to `/settings`. Lint, typecheck, and all-platform export passed; installed-build export/share and restore behavior remain unverified. |
