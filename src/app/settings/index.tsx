@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Switch, View } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppScreenFrame } from "@/components/AppScreenFrame";
 import { Button } from "@/components/Button";
@@ -41,6 +41,7 @@ type BackupPreview = {
 };
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const [preferences, setPreferences] = useState<ReminderPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -203,6 +204,10 @@ export default function SettingsScreen() {
 
   return (
     <AppScreenFrame
+      onBack={() => {
+        if (router.canGoBack()) router.back();
+        else router.replace("/");
+      }}
       subtitle="Manage reminders, backups, and restore."
       title="Settings"
     >

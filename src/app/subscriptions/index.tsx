@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppScreenFrame } from "@/components/AppScreenFrame";
@@ -7,12 +7,12 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
 import { FilterChip } from "@/components/FilterChip";
+import { PeriodListItem } from "@/components/PeriodListItem";
 import { ThemedText } from "@/components/ThemedText";
 import { listSubscriptionPeriods } from "@/lib/database/repositories";
-import { formatCurrency, formatDateLocal, getRemainingPaymentAmount } from "@/lib/dates";
 import { newSubscriptionHref, subscriptionDetailsHref } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
-import type { SubscriptionLifecycleStatus, SubscriptionPeriodDetails } from "@/types";
+import type { SubscriptionPeriodDetails } from "@/types";
 
 type PeriodFilter = "all" | "active" | "expiring_soon" | "expired" | "unpaid";
 
@@ -23,16 +23,6 @@ const filters: { label: string; value: PeriodFilter }[] = [
   { label: "Expired", value: "expired" },
   { label: "Unpaid", value: "unpaid" },
 ];
-
-function lifecycleLabel(status: SubscriptionLifecycleStatus): string {
-  if (status === "expiring_soon") return "Expiring soon";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
-
-function paymentLabel(status: SubscriptionPeriodDetails["paymentStatus"]): string {
-  if (status === "partially_paid") return "Partially paid";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
 
 export default function SubscriptionPeriodsScreen() {
   const router = useRouter();
@@ -133,31 +123,13 @@ export default function SubscriptionPeriodsScreen() {
           title={filter === "all" ? "No periods yet" : "No matching periods"}
         />
       ) : (
-        <View className="gap-4">
+        <View className="gap-3">
           {periods.map((period) => (
-            <Pressable
-              accessibilityHint="Open subscription period details"
-              accessibilityLabel={`${period.subscriberName} on ${period.wifiNetworkName}, expires ${formatDateLocal(period.expirationDate)}, ${lifecycleLabel(period.lifecycleStatus)}, ${paymentLabel(period.paymentStatus)}`}
-              accessibilityRole="button"
-              className="min-h-11"
+            <PeriodListItem
               key={period.id}
               onPress={() => router.push(subscriptionDetailsHref(period.id))}
-            >
-              <Card className="gap-2">
-                <ThemedText variant="label">{period.subscriberName}</ThemedText>
-                <ThemedText>{period.wifiNetworkName}</ThemedText>
-                <ThemedText variant="caption">
-                  {formatDateLocal(period.startDate)} – {formatDateLocal(period.expirationDate)}
-                </ThemedText>
-                <ThemedText>Amount · {formatCurrency(period.amount)}</ThemedText>
-                <ThemedText>Paid · {formatCurrency(period.amountPaid)}</ThemedText>
-                <ThemedText>
-                  Remaining · {formatCurrency(getRemainingPaymentAmount(period.amount, period.amountPaid))}
-                </ThemedText>
-                <ThemedText>Lifecycle · {lifecycleLabel(period.lifecycleStatus)}</ThemedText>
-                <ThemedText>Payment · {paymentLabel(period.paymentStatus)}</ThemedText>
-              </Card>
-            </Pressable>
+              period={period}
+            />
           ))}
         </View>
       )}

@@ -1,17 +1,28 @@
 import { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppScreenFrame } from "@/components/AppScreenFrame";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
+import { RecordDetail, RecordLeadingTile, RecordRow, RecordTitle } from "@/components/RecordRow";
 import { SubscriberSheet } from "@/components/SubscriberSheet";
 import { TextField } from "@/components/TextField";
 import { ThemedText } from "@/components/ThemedText";
 import { listSubscribers } from "@/lib/database/repositories";
 import { subscriberDetailsHref } from "@/lib/navigation";
 import type { Subscriber } from "@/types";
+
+/** Up to two initials from the name, used in the leading tile. */
+function initialsOf(name: string): string {
+  const letters = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase());
+  return letters.join("") || "?";
+}
 
 export default function SubscribersScreen() {
   const router = useRouter();
@@ -107,27 +118,25 @@ export default function SubscribersScreen() {
           title={search.trim() ? "No matching subscribers" : "No subscribers yet"}
         />
       ) : (
-        <View className="gap-4">
+        <View className="gap-3">
           {subscribers.map((subscriber) => (
-            <Pressable
+            <RecordRow
               accessibilityHint="Open subscriber details and subscription history"
               accessibilityLabel={`${subscriber.name}${subscriber.phone ? `, ${subscriber.phone}` : ""}${subscriber.email ? `, ${subscriber.email}` : ""}`}
-              accessibilityRole="button"
-              className="min-h-11"
               key={subscriber.id}
+              leading={
+                <RecordLeadingTile tone="neutral">
+                  <ThemedText variant="label">{initialsOf(subscriber.name)}</ThemedText>
+                </RecordLeadingTile>
+              }
               onPress={() => router.push(subscriberDetailsHref(subscriber.id))}
             >
-              <Card className="gap-2">
-                <ThemedText variant="label">{subscriber.name}</ThemedText>
-                <ThemedText variant="caption">
-                  {subscriber.phone ?? subscriber.email ?? "No contact details"}
-                </ThemedText>
-                {subscriber.phone && subscriber.email ? (
-                  <ThemedText variant="caption">{subscriber.email}</ThemedText>
-                ) : null}
-                {subscriber.notes ? <ThemedText numberOfLines={2}>{subscriber.notes}</ThemedText> : null}
-              </Card>
-            </Pressable>
+              <RecordTitle>{subscriber.name}</RecordTitle>
+              <RecordDetail>
+                {subscriber.phone ?? subscriber.email ?? "No contact details"}
+              </RecordDetail>
+              {subscriber.phone && subscriber.email ? <RecordDetail>{subscriber.email}</RecordDetail> : null}
+            </RecordRow>
           ))}
         </View>
       )}

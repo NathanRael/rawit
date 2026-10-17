@@ -1,13 +1,15 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 
+import { AppScreenFrame } from "@/components/AppScreenFrame";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
+import { Icon } from "@/components/Icon";
+import { RecordDetail, RecordLeadingTile, RecordRow, RecordTitle } from "@/components/RecordRow";
 import { ThemedText } from "@/components/ThemedText";
 import { WifiNetworkSheet } from "@/components/WifiNetworkSheet";
-import { AppScreenFrame } from "@/components/AppScreenFrame";
 import { listWifiNetworks } from "@/lib/database/repositories";
 import { wifiNetworkDetailsHref } from "@/lib/navigation";
 import type { WifiNetwork } from "@/types";
@@ -74,24 +76,25 @@ export default function WifiNetworksScreen() {
           title="No WiFi networks yet"
         />
       ) : (
-        <View className="gap-4">
+        <View className="gap-3">
           {networks.map((network) => (
-            <Pressable
+            <RecordRow
               accessibilityHint="Open network details"
               accessibilityLabel={`${network.name}${network.ssid ? `, SSID ${network.ssid}` : ""}`}
-              accessibilityRole="button"
               key={network.id}
+              leading={
+                <RecordLeadingTile>
+                  <Icon name="wifi" size={22} />
+                </RecordLeadingTile>
+              }
               onPress={() => router.push(wifiNetworkDetailsHref(network.id))}
-              className="min-h-11"
             >
-              <Card className="gap-2">
-                <ThemedText variant="label">{network.name}</ThemedText>
-                <ThemedText variant="caption">
-                  {network.ssid ? `SSID · ${network.ssid}` : "SSID not provided"}
-                </ThemedText>
-                {network.notes ? <ThemedText numberOfLines={2}>{network.notes}</ThemedText> : null}
-              </Card>
-            </Pressable>
+              <RecordTitle>{network.name}</RecordTitle>
+              <RecordDetail>
+                {network.ssid ? `SSID · ${network.ssid}` : "SSID not provided"}
+              </RecordDetail>
+              {network.notes ? <RecordDetail>{network.notes}</RecordDetail> : null}
+            </RecordRow>
           ))}
         </View>
       )}
