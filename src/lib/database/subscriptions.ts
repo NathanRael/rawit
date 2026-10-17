@@ -15,6 +15,12 @@ import {
   parseLocalDate,
 } from "@/lib/dates";
 
+import {
+  cancelRemindersForSubscription,
+  reconcileRemindersForSubscription,
+} from "@/lib/notifications/reminders";
+import { cancelScheduledNotifications } from "@/lib/notifications/service";
+
 import { createRecordId, nowIso, optionalText } from "./helpers";
 import { databaseError, getDatabase, withDatabaseTransaction } from "./index";
 
@@ -119,7 +125,7 @@ export async function createSubscriptionPeriod(
   validatePeriod(input);
   const id = createRecordId("period");
   const createdAt = nowIso();
-  return withDatabaseTransaction("Create subscription period", async (database) => {
+  const created = await withDatabaseTransaction("Create subscription period", async (database) => {
     await database.runAsync(
       `INSERT INTO subscription_periods
         (id, subscriber_id, wifi_network_id, start_date, duration_value, duration_unit, amount, notes, created_at)
@@ -143,6 +149,11 @@ export async function createSubscriptionPeriod(
     if (!row) throw new Error("Inserted subscription period could not be read.");
     return mapSubscriptionPeriod(row, getLocalDate());
   });
+
+  void reconcileRemindersForSubscription(created.id).catch(() => {
+    // Reminder scheduling failures must not block core subscription operations.
+  });
+  return created;
 }
 
 export async function updateSubscriptionPeriod(
@@ -150,7 +161,7 @@ export async function updateSubscriptionPeriod(
   input: NewSubscriptionPeriod,
 ): Promise<SubscriptionPeriod | null> {
   validatePeriod(input);
-  return withDatabaseTransaction("Update subscription period", async (database) => {
+  const updated = await withDatabaseTransaction("Update subscription period", async (database) => {
     const result = await database.runAsync(
       `UPDATE subscription_periods
        SET subscriber_id = ?, wifi_network_id = ?, start_date = ?, duration_value = ?,
@@ -174,6 +185,13 @@ export async function updateSubscriptionPeriod(
     );
     return row ? mapSubscriptionPeriod(row, getLocalDate()) : null;
   });
+
+  if (updated) {
+    void reconcileRemindersForSubscription(updated.id).catch(() => {
+      // Reminder scheduling failures must not block core subscription operations.
+    });
+  }
+  return updated;
 }
 
 export async function cancelSubscriptionPeriod(id: string): Promise<boolean> {
@@ -183,7 +201,13 @@ export async function cancelSubscriptionPeriod(id: string): Promise<boolean> {
       "UPDATE subscription_periods SET cancelled_at = ? WHERE id = ? AND cancelled_at IS NULL",
       [nowIso(), id],
     );
-    return result.changes > 0;
+    const cancelled = result.changes > 0;
+    if (cancelled) {
+      void cancelRemindersForSubscription(id).catch(() => {
+        // Reminder cancellation failures must not block core subscription operations.
+      });
+    }
+    return cancelled;
   } catch (error) {
     throw databaseError("Cancel subscription period", error);
   }
@@ -267,9 +291,20 @@ export async function deleteSubscriptionPeriod(
       return { deleted: false, reason: "has_payments", paymentCount: row.payment_count };
     }
 
+    const reminderRows = await database.getAllAsync<{ notification_id: string }>(
+      "SELECT notification_id FROM subscription_reminders WHERE subscription_id = ?",
+      [id],
+    );
+
     const result = await database.runAsync("DELETE FROM subscription_periods WHERE id = ?", [id]);
-    return result.changes > 0
-      ? { deleted: true }
-      : { deleted: false, reason: "not_found" };
+    const deleted = result.changes > 0;
+
+    if (deleted && reminderRows.length > 0) {
+      void cancelScheduledNotifications(reminderRows.map((row) => row.notification_id)).catch(() => {
+        // Reminder cancellation failures must not block deletion.
+      });
+    }
+
+    return deleted ? { deleted: true } : { deleted: false, reason: "not_found" };
   });
 }

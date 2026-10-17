@@ -6,23 +6,32 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
 import { initializeDatabase } from "@/lib/database";
+import { reconcileAllReminders, refreshRemindersOnLifecycleChange } from "@/lib/notifications/reminders";
 import { refreshLifecycleDate } from "@/store/lifecycle";
 import { AppNavigationBar } from "@/components/AppNavigationBar";
+
+function refreshAppClockAndReminders(): void {
+  refreshLifecycleDate();
+  void refreshRemindersOnLifecycleChange();
+}
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
   const [startupError, setStartupError] = useState<string | null>(null);
 
   useEffect(() => {
-    refreshLifecycleDate();
+    refreshAppClockAndReminders();
     void initializeDatabase()
-      .then(() => setIsReady(true))
+      .then(async () => {
+        await reconcileAllReminders();
+        setIsReady(true);
+      })
       .catch((error: unknown) => {
         setStartupError(error instanceof Error ? error.message : "Unknown local storage error.");
       });
 
     const appStateSubscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") refreshLifecycleDate();
+      if (state === "active") refreshAppClockAndReminders();
     });
 
     return () => appStateSubscription.remove();
