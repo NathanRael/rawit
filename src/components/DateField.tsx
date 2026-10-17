@@ -1,4 +1,4 @@
-import { DateTimePicker } from "@expo/ui/community/datetime-picker";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 
@@ -25,8 +25,8 @@ function toDate(value: LocalDate): Date {
 }
 
 /**
- * Native date picker field. On web the picker is unavailable, so it falls back to
- * a typed YYYY-MM-DD input, which the validation schema still checks.
+ * Native date picker field. Android uses the system dialog and iOS shows an inline
+ * calendar. On web, it falls back to a typed YYYY-MM-DD input.
  */
 export function DateField({ label, value, onChange, onBlur, error }: DateFieldProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -48,6 +48,19 @@ export function DateField({ label, value, onChange, onBlur, error }: DateFieldPr
   }
 
   const displayValue = formatDateLocal(value);
+  const openPicker = () => {
+    if (Platform.OS === "android") {
+      DateTimePickerAndroid.open({
+        display: "default",
+        mode: "date",
+        onValueChange: (_event, date) => onChange(getLocalDate(date)),
+        value: toDate(value),
+      });
+      return;
+    }
+
+    setIsPickerOpen((open) => !open);
+  };
 
   return (
     <View className="gap-2">
@@ -56,26 +69,14 @@ export function DateField({ label, value, onChange, onBlur, error }: DateFieldPr
         accessibilityHint="Opens the date picker"
         accessibilityLabel={`${label}, ${displayValue}`}
         accessibilityRole="button"
-        accessibilityState={{ expanded: isPickerOpen }}
+        accessibilityState={Platform.OS === "ios" ? { expanded: isPickerOpen } : undefined}
         className="min-h-12 flex-row items-center justify-between gap-3 rounded-control border-2 border-ink bg-white px-3 py-3"
-        onPress={() => setIsPickerOpen((open) => !open)}
+        onPress={openPicker}
         style={[hardShadow(), roundedCorners]}
       >
         <ThemedText style={typography.body}>{displayValue}</ThemedText>
         <Icon name="calendar" />
       </Pressable>
-      {isPickerOpen && Platform.OS === "android" ? (
-        <DateTimePicker
-          mode="date"
-          onDismiss={() => setIsPickerOpen(false)}
-          onValueChange={(_event, date) => {
-            onChange(getLocalDate(date));
-            setIsPickerOpen(false);
-          }}
-          presentation="dialog"
-          value={toDate(value)}
-        />
-      ) : null}
       {isPickerOpen && Platform.OS === "ios" ? (
         <View className="items-start rounded-control border-2 border-ink bg-white px-2 py-2">
           <DateTimePicker
