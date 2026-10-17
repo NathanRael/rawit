@@ -33,3 +33,5 @@ export function subscriptionDetailsHref(id: string): Href {
 export function subscriptionEditHref(id: string): Href {
   return `/subscriptions/${encodeURIComponent(id)}/edit` as Href;
 }
+
+export const settingsHref = "/settings" as Href;

@@ -7,11 +7,12 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
+import { IconButton } from "@/components/IconButton";
 import { ThemedText } from "@/components/ThemedText";
 import { listSubscriptionPeriods } from "@/lib/database/repositories";
 import { formatCurrency, formatDateLocal } from "@/lib/dates";
 import { summarizeOverview } from "@/lib/overview";
-import { newSubscriptionHref, subscriptionDetailsHref, subscriptionsHref } from "@/lib/navigation";
+import { newSubscriptionHref, settingsHref, subscriptionDetailsHref, subscriptionsHref } from "@/lib/navigation";
 import { useLifecycleDate } from "@/store/lifecycle";
 import type { SubscriptionLifecycleStatus, SubscriptionPeriodDetails } from "@/types";
 
@@ -87,6 +88,14 @@ export default function OverviewScreen() {
       subtitle="See who owes money and which periods need attention."
       title="Overview"
     >
+      <View className="flex-row items-center justify-end gap-2">
+        <IconButton
+          label="Settings"
+          icon="settings"
+          onPress={() => router.push(settingsHref)}
+        />
+      </View>
+
       <Button
         accessibilityHint="Create a subscription period for a subscriber and WiFi network"
         onPress={() => router.push(newSubscriptionHref)}
