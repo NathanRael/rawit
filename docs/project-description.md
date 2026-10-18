@@ -19,7 +19,7 @@ The app is built with Expo and React Native for installed mobile builds and a ph
 - **Payments:** record payment history and show paid, unpaid, or partial payment status when partial payments are supported.
 - **Renewals:** create a new period while preserving previous subscription and payment records.
 - **Overview:** show active, expiring, and expired periods, unpaid amounts, and actions that need attention.
-- **Reminders:** schedule configurable local reminders before expiration and on the expiration date. In-app status remains correct even when notifications are unavailable.
+- **Reminders:** schedule configurable local reminders before expiration and on the expiration date, with optional transactional email reminders sent only to the connected user's confirmed Supabase account email through Brevo and Supabase Edge Functions. Subscriber email addresses are not recipients. In-app status remains correct even when reminders are unavailable.
 - **Backup and restore:** export portable data and safely validate and restore it.
 
 ## Rules that affect behavior

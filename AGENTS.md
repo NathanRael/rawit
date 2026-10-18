@@ -30,7 +30,7 @@ Commit only when the user explicitly asks. When asked to commit:
 
 RAWIT is a personal WiFi subscription manager backed by Supabase accounts and cross-device sync. It tracks WiFi networks, subscribers, subscription periods, payments, expiration dates, reminders, and backups. It supports installed mobile builds and a phone-sized web view; desktop web and store publication are out of scope.
 
-Supabase Auth and a per-user cloud snapshot provide the requested login and cross-device sync. Do not add another backend, remote push service, router control, or connected-device discovery. Use local notifications only. Verify platform behavior against the installed Expo SDK and target build; Expo Go behavior is not proof of installed-build behavior.
+Supabase Auth and a per-user cloud snapshot provide the requested login and cross-device sync. Do not add another backend, remote push service, router control, or connected-device discovery. Use local notifications and optional transactional email reminders through Brevo from Supabase Edge Functions. Verify platform behavior against the installed Expo SDK and target build; Expo Go behavior is not proof of installed-build behavior.
 
 Email confirmation is required for new accounts. Keep Supabase Confirm Email enabled, provide the in-app code and resend flow, and do not import account records before a confirmed session exists.
 
@@ -69,6 +69,7 @@ Follow the structure already present before creating folders or moving files. Ro
 ### Notifications
 
 - Use `expo-notifications` for local expiration reminders, normally three days before, one day before, and on the expiration date; honor configured preferences.
+- Email reminders are an optional second channel to the signed-in account owner; send through Brevo only from authenticated/server-side Supabase Edge Functions, keep API secrets out of the app, and honor explicit email preferences.
 - Reconcile reminders when a subscription is created, edited, renewed, cancelled, or deleted. Cancel obsolete reminders, avoid duplicates, skip invalid or past trigger times, and handle denied permissions without breaking core app use.
 - Persist notification identifiers when needed to cancel or reconcile schedules.
 - Notifications are reminders, not the source of truth. Screens must show expiring and expired subscriptions even if reminders are denied, dismissed, or missed.
@@ -91,7 +92,7 @@ Follow the structure already present before creating folders or moving files. Ro
 
 Check `package.json` for the actual scripts. The current scripts include `pnpm lint` and `pnpm typecheck` (equivalently use the repository's configured package manager). Run relevant checks for code changes when appropriate, and fix issues introduced by the change.
 
-After implementing each feature, run a platform export/build check to catch bundling or build errors. For this app, use `pnpm exec expo export --platform all`; when a change affects native behavior that export cannot validate, also run an installed development/preview build when available. Resolve build failures before marking the feature complete, or record any unavailable validation in the handoff plan and final response.
+After implementing each feature, run a platform export/build check to catch bundling or build errors. For this app, use `pnpm export:prod` so the export explicitly reads `.env`; when a change affects native behavior that export cannot validate, also run an installed development/preview build when available. Resolve build failures before marking the feature complete, or record any unavailable validation in the handoff plan and final response.
 
 For date, persistence, payment, renewal, backup, or notification changes, consider the relevant cases from the product description and implementation plan. Test notification behavior on an installed build and supported devices when the change depends on native scheduling. Clearly state when device validation was not possible.
 

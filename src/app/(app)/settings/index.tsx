@@ -53,6 +53,9 @@ export default function SettingsScreen() {
   const syncMessage = useSyncStore((state) => state.message);
   const [accountBusy, setAccountBusy] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [emailTestBusy, setEmailTestBusy] = useState(false);
+  const [emailTestMessage, setEmailTestMessage] = useState<string | null>(null);
+  const [emailTestError, setEmailTestError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<ReminderPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -227,6 +230,25 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleSendTestEmail = async () => {
+    setEmailTestBusy(true);
+    setEmailTestMessage(null);
+    setEmailTestError(null);
+    try {
+      const { error: invokeError } = await requireSupabase().functions.invoke("send-reminder-email", {
+        body: { type: "test" },
+      });
+      if (invokeError) {
+        throw new Error("Could not send the test email. Check that the function is deployed and its Brevo settings are configured.");
+      }
+      setEmailTestMessage(`Test email sent to ${accountEmail}. Check your inbox and spam folder.`);
+    } catch (cause) {
+      setEmailTestError(cause instanceof Error ? cause.message : "Could not send the test email.");
+    } finally {
+      setEmailTestBusy(false);
+    }
+  };
+
   const handleLogout = async () => {
     setAccountBusy(true);
     setAccountError(null);
@@ -277,6 +299,26 @@ export default function SettingsScreen() {
             </View>
             <Button disabled={accountBusy} onPress={() => void handleSync()} title="Sync now" variant="secondary" />
             <Button disabled={accountBusy} onPress={() => void handleLogout()} title="Log out" variant="secondary" />
+          </Card>
+          <Card className="gap-3">
+            <ThemedText variant="heading">Test email delivery</ThemedText>
+            <ThemedText>
+              Send a one-time test to your connected account email ({accountEmail ?? "unavailable"}). This does not enable scheduled email reminders.
+            </ThemedText>
+            <Button
+              accessibilityHint="Send a test email to the connected account email"
+              disabled={emailTestBusy || !accountEmail}
+              loading={emailTestBusy}
+              onPress={() => void handleSendTestEmail()}
+              title="Send test email"
+              variant="secondary"
+            />
+            {emailTestMessage ? (
+              <ThemedText accessibilityLiveRegion="polite" variant="caption">{emailTestMessage}</ThemedText>
+            ) : null}
+            {emailTestError ? (
+              <ThemedText accessibilityRole="alert" variant="caption">{emailTestError}</ThemedText>
+            ) : null}
           </Card>
           <Card className="gap-4">
             <View className="flex-row items-center justify-between gap-3">
