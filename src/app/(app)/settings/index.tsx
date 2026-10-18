@@ -17,11 +17,12 @@ import {
 } from "@/lib/backup";
 import {
   DEFAULT_REMINDER_INTERVALS_DAYS,
+  loadEmailReminderPreferences,
   loadReminderPreferences,
   reconcileAllReminders,
   requestNotificationPermissions,
-  resetReminderPreferences,
   saveReminderPreferences,
+  saveEmailReminderPreferences,
 } from "@/lib/notifications";
 import type { ReminderPreferences } from "@/types";
 import { overviewHref } from "@/lib/navigation";
@@ -57,6 +58,10 @@ export default function SettingsScreen() {
   const [emailTestMessage, setEmailTestMessage] = useState<string | null>(null);
   const [emailTestError, setEmailTestError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<ReminderPreferences | null>(null);
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [emailAvailable, setEmailAvailable] = useState(true);
+  const [emailPreferenceError, setEmailPreferenceError] = useState<string | null>(null);
+  const [preferenceBusy, setPreferenceBusy] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -69,14 +74,33 @@ export default function SettingsScreen() {
     setIsLoading(true);
     setError(null);
     try {
-      const loaded = await loadReminderPreferences();
+      let loaded = await loadReminderPreferences();
+      if (userId) {
+        try {
+          const cloud = await loadEmailReminderPreferences(userId);
+          setEmailEnabled(cloud.emailEnabled);
+          setEmailAvailable(true);
+          setEmailPreferenceError(null);
+          if (cloud.sharedPreferences) {
+            loaded = cloud.sharedPreferences;
+            if (cloud.timeZone !== (Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC")) {
+              await saveEmailReminderPreferences(userId, true, loaded);
+            }
+            await saveReminderPreferences(loaded);
+            await reconcileAllReminders();
+          }
+        } catch {
+          setEmailAvailable(false);
+          setEmailPreferenceError("Connect to Supabase to view or change email reminders.");
+        }
+      }
       setPreferences(loaded);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not load settings.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   const loadBackupPreview = useCallback(async () => {
     try {
@@ -100,13 +124,18 @@ export default function SettingsScreen() {
     }, [load, loadBackupPreview]),
   );
 
-  const toggleEnabled = async (enabled: boolean) => {
-    if (!preferences) return;
-    const next = { ...preferences, enabled };
-    setPreferences(next);
+  const saveSharedPreferences = async (next: ReminderPreferences) => {
+    if (preferenceBusy || !userId) return;
+    setPreferenceBusy(true);
+    setEmailPreferenceError(null);
     try {
+      if (emailEnabled) {
+        if (!emailAvailable) throw new Error("Connect to Supabase to update email reminders.");
+        await saveEmailReminderPreferences(userId, true, next);
+      }
       await saveReminderPreferences(next);
-      if (enabled) {
+      setPreferences(next);
+      if (next.enabled) {
         void requestNotificationPermissions().then(async (granted) => {
           if (granted) await reconcileAllReminders();
         });
@@ -115,8 +144,14 @@ export default function SettingsScreen() {
       }
       showSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not save reminder settings.");
+      setEmailPreferenceError(cause instanceof Error ? cause.message : "Could not save reminder settings.");
+    } finally {
+      setPreferenceBusy(false);
     }
+  };
+
+  const toggleEnabled = async (enabled: boolean) => {
+    if (preferences) await saveSharedPreferences({ ...preferences, enabled });
   };
 
   const toggleInterval = async (days: number) => {
@@ -124,25 +159,25 @@ export default function SettingsScreen() {
     const nextIntervals = preferences.intervalsDays.includes(days)
       ? preferences.intervalsDays.filter((d) => d !== days)
       : [...preferences.intervalsDays, days];
-    const next = { ...preferences, intervalsDays: nextIntervals };
-    setPreferences(next);
-    try {
-      await saveReminderPreferences(next);
-      await reconcileAllReminders();
-      showSaved();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not save reminder settings.");
-    }
+    await saveSharedPreferences({ ...preferences, intervalsDays: nextIntervals });
   };
 
   const handleReset = async () => {
+    if (preferences) await saveSharedPreferences({ enabled: true, intervalsDays: DEFAULT_REMINDER_INTERVALS_DAYS });
+  };
+
+  const toggleEmail = async (enabled: boolean) => {
+    if (!preferences || !userId || preferenceBusy) return;
+    setPreferenceBusy(true);
+    setEmailPreferenceError(null);
     try {
-      const reset = await resetReminderPreferences();
-      setPreferences(reset);
-      await reconcileAllReminders();
+      await saveEmailReminderPreferences(userId, enabled, preferences);
+      setEmailEnabled(enabled);
       showSaved();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not reset reminder settings.");
+      setEmailPreferenceError(cause instanceof Error ? cause.message : "Could not update email reminders.");
+    } finally {
+      setPreferenceBusy(false);
     }
   };
 
@@ -303,7 +338,7 @@ export default function SettingsScreen() {
           <Card className="gap-3">
             <ThemedText variant="heading">Test email delivery</ThemedText>
             <ThemedText>
-              Send a one-time test to your connected account email ({accountEmail ?? "unavailable"}). This does not enable scheduled email reminders.
+              Send a one-time test to your connected account email ({accountEmail ?? "unavailable"}).
             </ThemedText>
             <Button
               accessibilityHint="Send a test email to the connected account email"
@@ -332,8 +367,29 @@ export default function SettingsScreen() {
                 accessibilityState={{ checked: preferences.enabled }}
                 onValueChange={toggleEnabled}
                 value={preferences.enabled}
+                disabled={preferenceBusy}
               />
             </View>
+
+            <View className="flex-row items-center justify-between gap-3">
+              <View className="flex-1 gap-1">
+                <ThemedText variant="label">Email reminders</ThemedText>
+                <ThemedText variant="caption">
+                  Send to {accountEmail ?? "your account email"} once on each selected reminder day. Checked daily at 06:00 UTC.
+                </ThemedText>
+              </View>
+              <Switch
+                accessibilityLabel="Enable email reminders"
+                accessibilityRole="switch"
+                accessibilityState={{ checked: emailEnabled, disabled: !emailAvailable || preferenceBusy }}
+                disabled={!emailAvailable || preferenceBusy}
+                onValueChange={(enabled) => void toggleEmail(enabled)}
+                value={emailEnabled}
+              />
+            </View>
+            {emailPreferenceError ? (
+              <ThemedText accessibilityRole="alert" variant="caption">{emailPreferenceError}</ThemedText>
+            ) : null}
 
             {preferences.enabled ? (
               <View className="gap-3">

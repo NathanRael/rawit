@@ -69,16 +69,19 @@ pnpm supabase:stop
 
 ## Hosted Supabase and production
 
-1. Create a Supabase project and run [the RAWIT SQL migration](supabase/migrations/20261017_user_snapshots.sql) in its SQL editor.
+1. Create a Supabase project and apply the RAWIT migrations with `pnpm supabase:db:push` after linking it.
 2. In **Authentication → Providers → Email**, enable email/password signups and keep **Confirm Email** on. In **Authentication → Email Templates → Confirm sign up**, include `{{ .Token }}`.
 3. Run `pnpm env:init:prod`, then enter the hosted project's URL and publishable key in `.env`. Existing `.env` files are preserved.
-4. Link and deploy the Edge Function, then add the private Brevo values to Supabase:
+4. Link the project, upload the private Brevo and Cron secrets, apply migrations, and deploy both Edge Functions:
 
    ```powershell
    pnpm supabase:link -- --project-ref your-project-ref
    pnpm supabase:secrets:set
+   pnpm supabase:db:push
    pnpm supabase:function:deploy
    ```
+
+5. Create the two Vault secrets and install the **once-daily** Cron job using [the email schedule instructions](docs/supabase-setup.md#brevo-reminder-email-setup). It runs at 06:00 UTC, sends only to the confirmed account email, and uses the same days selected for local notifications. Email is off until enabled in Settings.
 
 Use `pnpm start:prod` to run Expo against the hosted project and `pnpm export:prod` for the production export. See [Supabase setup](docs/supabase-setup.md) for account sync, deployment details, and current limitations.
 
@@ -106,10 +109,12 @@ pnpm export:prod
 | `pnpm supabase:migration:new -- <name>` | Create a timestamped migration file |
 | `pnpm supabase:db:pull` | Create a migration from the linked hosted schema |
 | `pnpm supabase:db:push` | Apply pending migrations to the linked hosted database |
-| `pnpm supabase:function:serve` | Serve the reminder function locally with the Brevo env file |
+| `pnpm supabase:function:serve` | Serve both reminder functions locally with the Brevo env file |
 | `pnpm supabase:secrets:set` | Upload the Brevo env file to the linked project's function secrets |
 | `pnpm supabase:secrets:list` | List secret names configured on the linked project |
-| `pnpm supabase:function:deploy` | Deploy the reminder function to the linked project |
+| `pnpm supabase:function:deploy` | Deploy both reminder functions to the linked project |
+| `pnpm supabase:cron:setup` | Install or update the hosted once-daily Cron job after creating Vault secrets |
+| `pnpm supabase:email:dispatch:local` | Invoke the local email dispatcher once using the ignored function env file |
 | `pnpm check` | Run lint and TypeScript checks |
 | `pnpm test` | Run the repository's date and overview tests |
 | `pnpm build` | Export production bundles for web, Android, and iOS |

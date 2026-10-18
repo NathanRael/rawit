@@ -80,8 +80,10 @@
     "supabase:db:pull": "supabase db pull",
     "supabase:db:diff": "supabase db diff",
     "supabase:migration:new": "supabase migration new",
-    "supabase:function:serve": "supabase functions serve send-reminder-email --env-file supabase/functions/.env",
-    "supabase:function:deploy": "supabase functions deploy send-reminder-email",
+    "supabase:function:serve": "supabase functions serve --env-file supabase/functions/.env",
+    "supabase:function:deploy": "supabase functions deploy send-reminder-email && supabase functions deploy dispatch-reminder-emails",
+    "supabase:email:dispatch:local": "node scripts/dispatch-reminder-emails.mjs",
+    "supabase:cron:setup": "supabase db query --linked --file supabase/cron/setup.sql",
     "supabase:secrets:set": "supabase secrets set --env-file supabase/functions/.env",
     "supabase:secrets:list": "supabase secrets list"
   },

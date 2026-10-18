@@ -16,14 +16,14 @@ After registration, RAWIT asks for the email code and offers **Resend code**. If
 
 The app checks account ownership using the authenticated user's immutable Supabase ID. Email addresses can change; passwords are never used as record keys. Supabase row-level security limits reads and writes to the signed-in user's snapshot.
 
-## Brevo reminder email setup (initial)
+## Brevo reminder email setup
 
-The first email integration step is `supabase/functions/send-reminder-email`. It accepts reminder details from a signed-in app session, verifies the bearer token with Supabase Auth, and sends only to the connected user's confirmed Supabase account email. Subscriber email addresses and request-supplied recipient addresses are never used. The function currently provides an authenticated send path; automated daily scheduling and the in-app email preference are not implemented yet.
+`send-reminder-email` provides the signed-in account's one-time test send. `dispatch-reminder-emails` is invoked once daily by Supabase Cron, reads due periods from the synced cloud snapshot, and sends only to each user's confirmed Supabase Auth email. Subscriber email addresses are never recipients. **Settings → Email reminders** is off by default; once enabled, it follows the same master switch and selected days as local notifications. An account needs an internet connection to change its email setting.
 
 The root `.env.example` is for the Expo app. It contains only the Supabase project URL and publishable key used by the client. Edge Function settings live separately: `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEYS` are injected by Supabase, while `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and `BREVO_SENDER_NAME` configure Brevo delivery. The publishable key identifies the Supabase project/API; it is safe for a client when RLS is enabled. The Brevo API key is a private credential and must never go in the Expo environment or app bundle.
 
 1. In Brevo, create an API key and verify a sender email or sending domain. The sender email is the address Brevo will send from; the sender name is its display name. Transactional delivery requires a registered sender.
-2. For local Edge Function development, run `pnpm env:init:local` and replace the placeholders in `supabase/functions/.env`. That local file is ignored by Git. With Docker Desktop and `pnpm supabase:start` running, serve the function with `pnpm supabase:function:serve`.
+2. For local Edge Function development, run `pnpm env:init:local` and replace the placeholders in `supabase/functions/.env`. Set a long random `RAWIT_CRON_SECRET` there. That local file is ignored by Git. With Docker Desktop and `pnpm supabase:start` running, serve both functions with `pnpm supabase:function:serve`. The local start applies both database migrations.
 3. For deployment, link the CLI to the same Supabase project configured in the Expo app: `pnpm supabase:link -- --project-ref your-project-ref`.
 4. Set the Brevo values as Supabase Edge Function secrets (never put the Brevo API key in the Expo app or source control):
 
@@ -32,13 +32,25 @@ The root `.env.example` is for the Expo app. It contains only the Supabase proje
    ```
 
    `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEYS` are supplied to Edge Functions by Supabase; the function uses the default publishable key to validate the signed-in user's token. A fallback reads the older `SUPABASE_ANON_KEY` variable for older local Supabase CLIs.
-5. Deploy the function:
+5. Apply the pending SQL migration and deploy both functions:
 
    ```sh
+   pnpm supabase:db:push
    pnpm supabase:function:deploy
    ```
 
-6. Start the app with the updated Settings screen, sign in, then open **Settings → Test email delivery → Send test email**. The test message goes to that connected user's email and does not enable scheduled reminders. Check the inbox and spam folder. For an expiration reminder request, send `subscriberName`, `networkName`, `expirationDate` (`YYYY-MM-DD`), and `daysBeforeExpiration` (`3`, `1`, or `0`). The function derives the recipient from the connected user's confirmed Auth email and returns only whether sending succeeded. It does not expose Brevo's API key or raw provider response.
+6. In the Supabase Dashboard SQL Editor, create two [Vault secrets](https://supabase.com/docs/guides/database/vault): `rawit_project_url` containing the hosted URL (without a trailing slash), and `rawit_cron_secret` containing the exact `RAWIT_CRON_SECRET` value uploaded to Edge Function secrets. Then run `pnpm supabase:cron:setup` (or run [`supabase/cron/setup.sql`](../supabase/cron/setup.sql) in the SQL Editor). It installs one job named `rawit-email-reminders-daily` at **06:00 UTC**. Re-running the SQL replaces the job with the same name. Supabase Cron uses `pg_cron` and `pg_net` to invoke the Edge Function; Vault keeps the invocation secret out of job text. [Supabase's scheduling guide](https://supabase.com/docs/guides/functions/schedule-functions) describes this pattern.
+7. Start the app, sign in, send a test via **Settings → Test email delivery**, then enable **Settings → Email reminders**. The test send is independent of the schedule. The dispatcher uses the current cloud snapshot, so wait for account sync before expecting a new period to generate email.
+
+The account's saved device time zone determines which periods are 3, 2, 1, or 0 calendar days from expiration. At the scheduled 06:00 UTC run this is 09:00 in Nairobi; the hour varies elsewhere. A period is sent at most once for each selected interval. The delivery ledger blocks duplicate sends on overlapping runs. Failed Brevo requests can be retried on the same local date by invoking the dispatcher again; if the provider accepts an email but its database acknowledgement fails, a later retry could duplicate it. The daily job does one database query, then makes Auth/Brevo calls only for due, opted-in periods. It does not poll every few minutes.
+
+For a local end-to-end check, first create a signed-in account and a subscription expiring on one of the selected days. Enable email reminders in Settings and sync. Then invoke the dispatcher manually (Cron itself is hosted):
+
+```powershell
+pnpm supabase:email:dispatch:local
+```
+
+The response gives `sent`, `failed`, and `skipped` counts. Invoking it again on the same UTC day should increase `skipped`, not send a duplicate. Supabase's local Auth confirmation inbox is at `http://127.0.0.1:54324`; reminder emails are sent through Brevo to the real account email.
 
 The function calls Brevo's `POST https://api.brevo.com/v3/smtp/email` endpoint directly, following its transactional email API. A separate pnpm package installation is not required: Edge Functions run in Deno, and keeping the Node SDK out of the Expo dependency graph avoids shipping server-only code to devices. See [Brevo's transactional email API](https://developers.brevo.com/docs/send-a-transactional-email) for sender requirements and the API contract.
 
